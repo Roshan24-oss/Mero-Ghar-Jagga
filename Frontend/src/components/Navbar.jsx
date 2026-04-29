@@ -13,7 +13,7 @@ const Navbar = () => {
         </div>
 
         {/* Search Bar */}
-        <div className='mt-6 flex items-center bg-white rounded-md px-2'>
+        <div className='mt-3 flex items-center bg-white rounded-md px-2'>
           <input
             type="text"
             placeholder='Search based on city...'
