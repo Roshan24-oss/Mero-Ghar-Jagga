@@ -1,5 +1,42 @@
-import { MapContainer, TileLayer, LayersControl } from "react-leaflet";
+import { MapContainer, TileLayer, LayersControl, useMap } from "react-leaflet";
+import { useEffect } from "react";
+import L from "leaflet";
+
 import "leaflet/dist/leaflet.css";
+import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
+import "@geoman-io/leaflet-geoman-free";
+
+const GeomanControl = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    // Enable drawing controls
+    map.pm.addControls({
+      position: "topright",
+      drawPolygon: true,
+      drawMarker: false,
+      drawCircle: false,
+      drawPolyline: false,
+      drawRectangle: false,
+      editMode: true,
+      dragMode: true,
+      cutPolygon: true,
+      removalMode: true,
+    });
+
+    // When polygon is created
+    map.on("pm:create", (e) => {
+      const layer = e.layer;
+      const geoJSON = layer.toGeoJSON();
+
+      console.log("GeoJSON:", geoJSON);
+
+      // 👉 send to backend later
+    });
+  }, [map]);
+
+  return null;
+};
 
 const Mapview = () => {
   const { BaseLayer, Overlay } = LayersControl;
@@ -13,41 +50,30 @@ const Mapview = () => {
       >
         <LayersControl>
 
-          {/* STREET MAP */}
           <BaseLayer checked name="Street Map">
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap"
-            />
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           </BaseLayer>
 
-          {/* SATELLITE */}
           <BaseLayer name="Satellite">
-            <TileLayer
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              attribution="Esri"
-            />
+            <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
           </BaseLayer>
 
-          {/* HYBRID FIXED */}
           <BaseLayer name="Satellite + Labels">
-            <TileLayer
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              attribution="Esri"
-            />
+            <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
           </BaseLayer>
 
-          {/* 🔥 LABELS AS OVERLAY (THIS IS THE FIX) */}
-          <Overlay checked name="Labels (ON TOP)">
+          <Overlay checked name="Labels">
             <TileLayer
               url="https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-              attribution="Esri Labels"
-              opacity={1}
               zIndex={1000}
             />
           </Overlay>
 
         </LayersControl>
+
+        {/* 🔥 GEOMAN DRAW TOOL */}
+        <GeomanControl />
+
       </MapContainer>
     </div>
   );

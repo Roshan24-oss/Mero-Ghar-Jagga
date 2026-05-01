@@ -1,8 +1,10 @@
-import React from 'react'
-import MapView from "./components/MapView.jsx"
-import "leaflet/dist/leaflet.css";
-
+import React from "react";
+import MapView from "./components/MapView.jsx";
 import UserLandingPage from "./Pages/UsersLandingPage";
+
+// ✅ Correct CSS imports
+import "leaflet/dist/leaflet.css";
+import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 
 const App = () => {
   return (
@@ -15,4 +17,4 @@ const App = () => {
   );
 };
 
-export default App
+export default App;
