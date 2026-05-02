@@ -12,7 +12,7 @@ const authMiddleware = async (req,res, next)=>{
 
     const decoded = jwt.verify(token,process.env.JWT_SECRET);
 
-    const user = await Usr.findById(decoded.id);
+    const user = await User.findById(decoded.id);
     if(!user) return res.status(401).json({ message: "User not found, authorization denied" });
 
     req.user = user;

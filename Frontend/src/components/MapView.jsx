@@ -1,16 +1,27 @@
-import { MapContainer, TileLayer, LayersControl, useMap } from "react-leaflet";
-import { useEffect } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  LayersControl,
+  useMap,
+  GeoJSON
+} from "react-leaflet";
+
+import { useEffect, useContext, useState } from "react";
 import L from "leaflet";
+
+import { AuthContext } from "../context/AuthContext";
+import axiosInstance from "../api/axiosInstance.js";
 
 import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
 
-const GeomanControl = () => {
+
+// 🔥 GEOMAN CONTROL (ONLY OWNER)
+const GeomanControl = ({ refreshProperties }) => {
   const map = useMap();
 
   useEffect(() => {
-    // Enable drawing controls
     map.pm.addControls({
       position: "topright",
       drawPolygon: true,
@@ -24,22 +35,58 @@ const GeomanControl = () => {
       removalMode: true,
     });
 
-    // When polygon is created
-    map.on("pm:create", (e) => {
-      const layer = e.layer;
-      const geoJSON = layer.toGeoJSON();
+    // ✅ FIXED: single event only
+    const handleCreate = async (e) => {
+      const geoJSON = e.layer.toGeoJSON();
 
-      console.log("GeoJSON:", geoJSON);
+      try {
+        await axiosInstance.post("/property", {
+          geometry: geoJSON.geometry,
+        });
 
-      // 👉 send to backend later
-    });
-  }, [map]);
+        alert("Property saved ✅");
+
+        // 🔄 refresh map data
+        refreshProperties();
+
+      } catch (err) {
+        console.error(err);
+        alert("Failed to save");
+      }
+    };
+
+    map.on("pm:create", handleCreate);
+
+    return () => {
+      map.pm.removeControls();
+      map.off("pm:create", handleCreate);
+    };
+  }, [map, refreshProperties]);
 
   return null;
 };
 
+
+// 🔥 MAIN MAP COMPONENT
 const Mapview = () => {
   const { BaseLayer, Overlay } = LayersControl;
+  const { user } = useContext(AuthContext);
+
+  const [properties, setProperties] = useState([]);
+
+  // 🔥 FETCH PROPERTIES
+  const fetchProperties = async () => {
+    try {
+      const res = await axiosInstance.get("/property");
+      setProperties(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
 
   return (
     <div className="h-[90vh] w-full">
@@ -49,7 +96,6 @@ const Mapview = () => {
         className="h-full w-full"
       >
         <LayersControl>
-
           <BaseLayer checked name="Street Map">
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           </BaseLayer>
@@ -68,11 +114,27 @@ const Mapview = () => {
               zIndex={1000}
             />
           </Overlay>
-
         </LayersControl>
 
-        {/* 🔥 GEOMAN DRAW TOOL */}
-        <GeomanControl />
+        {/* 🔴 SHOW SAVED PROPERTIES */}
+        {properties.map((prop) => (
+          <GeoJSON
+            key={prop._id}
+            data={{
+              type: "Feature",
+              geometry: prop.geometry,
+            }}
+            style={{
+              color: "red",
+              weight: 3,
+            }}
+          />
+        ))}
+
+        {/* 🔥 ONLY OWNER CAN DRAW */}
+        {user && user.role === "owner" && (
+          <GeomanControl refreshProperties={fetchProperties} />
+        )}
 
       </MapContainer>
     </div>
