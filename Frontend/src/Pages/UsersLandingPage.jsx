@@ -9,7 +9,7 @@ const UsersLandingPage = () => {
       <Navbar />
 
       {/* MapView fills remaining space */}
-      <div className="flex-1 mt-19">
+      <div className="flex-1 mt-16.5">
         <MapView />
       </div>
     </div>
