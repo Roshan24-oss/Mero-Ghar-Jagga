@@ -24,9 +24,26 @@ export const addProperty = async (req, res) => {
 // GET ALL PROPERTIES
 export const getProperties = async (req, res) => {
   try {
-    const properties = await Property.find();
+    let properties;
+
+    // 👤 OWNER → only his properties
+    if (req.user?.role === "owner") {
+      properties = await Property.find({ owner: req.user._id }).populate(
+        "owner",
+        "fullName phone"
+      );
+    } 
+    // 👥 USER / NOT LOGGED → all properties
+    else {
+      properties = await Property.find().populate(
+        "owner",
+        "fullName phone"
+      );
+    }
+
     res.json(properties);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Error fetching properties" });
   }
 };

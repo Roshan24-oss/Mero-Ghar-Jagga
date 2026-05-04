@@ -3,10 +3,13 @@ import {
   TileLayer,
   LayersControl,
   useMap,
-  GeoJSON
+  GeoJSON,
+  Marker,
+  Popup
 } from "react-leaflet";
 
 import { useEffect, useContext, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 
 import { AuthContext } from "../context/AuthContext";
@@ -17,7 +20,7 @@ import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
 
 
-// 🔥 GEOMAN CONTROL (ONLY OWNER)
+// 🔥 GEOMAN CONTROL (UNCHANGED)
 const GeomanControl = ({ refreshProperties }) => {
   const map = useMap();
 
@@ -35,7 +38,6 @@ const GeomanControl = ({ refreshProperties }) => {
       removalMode: true,
     });
 
-    // ✅ FIXED: single event only
     const handleCreate = async (e) => {
       const geoJSON = e.layer.toGeoJSON();
 
@@ -45,10 +47,7 @@ const GeomanControl = ({ refreshProperties }) => {
         });
 
         alert("Property saved ✅");
-
-        // 🔄 refresh map data
         refreshProperties();
-
       } catch (err) {
         console.error(err);
         alert("Failed to save");
@@ -71,10 +70,11 @@ const GeomanControl = ({ refreshProperties }) => {
 const Mapview = () => {
   const { BaseLayer, Overlay } = LayersControl;
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [properties, setProperties] = useState([]);
 
-  // 🔥 FETCH PROPERTIES
+  // FETCH PROPERTIES
   const fetchProperties = async () => {
     try {
       const res = await axiosInstance.get("/property");
@@ -88,6 +88,29 @@ const Mapview = () => {
     fetchProperties();
   }, []);
 
+  // 🔵 ICON
+  const profileIcon = (name) =>
+    L.divIcon({
+      html: `
+        <div style="
+          width:32px;
+          height:32px;
+          border-radius:50%;
+          background:#2563eb;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          color:white;
+          font-weight:bold;
+          border:2px solid white;
+        ">
+          ${name ? name.charAt(0).toUpperCase() : "U"}
+        </div>
+      `,
+      className: "",
+      iconSize: [32, 32],
+    });
+
   return (
     <div className="h-[90vh] w-full">
       <MapContainer
@@ -96,7 +119,7 @@ const Mapview = () => {
         className="h-full w-full"
       >
         <LayersControl>
-          <BaseLayer checked name="Street Map">
+          <BaseLayer name="Street Map">
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           </BaseLayer>
 
@@ -104,7 +127,7 @@ const Mapview = () => {
             <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
           </BaseLayer>
 
-          <BaseLayer name="Satellite + Labels">
+          <BaseLayer checked name="Satellite + Labels">
             <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
           </BaseLayer>
 
@@ -116,7 +139,7 @@ const Mapview = () => {
           </Overlay>
         </LayersControl>
 
-        {/* 🔴 SHOW SAVED PROPERTIES */}
+        {/* 🔴 POLYGONS */}
         {properties.map((prop) => (
           <GeoJSON
             key={prop._id}
@@ -124,18 +147,57 @@ const Mapview = () => {
               type: "Feature",
               geometry: prop.geometry,
             }}
-            style={{
-              color: "red",
-              weight: 3,
-            }}
+            style={{ color: "red", weight: 3 }}
           />
         ))}
+
+        {/* 🔵 SAFE OWNER MARKERS */}
+        {properties.map((prop) => {
+          const coords = prop.geometry?.coordinates?.[0];
+
+          if (!Array.isArray(coords) || coords.length === 0) return null;
+
+          const center = coords.find(
+            (c) => Array.isArray(c) && c.length >= 2
+          );
+
+          if (!center) return null;
+
+          return (
+            <Marker
+              key={prop._id + "_marker"}
+              position={[center[1], center[0]]}
+              icon={profileIcon(prop.owner?.fullName)}
+              eventHandlers={{
+                click: () => {
+                  if (!user) {
+                    navigate("/signin");
+                  }
+                },
+              }}
+            >
+              <Popup>
+                <div>
+                  <h3>{prop.owner?.fullName}</h3>
+
+                  {/* 🔥 PHONE LOGIC FIXED */}
+                  <p>
+                    {prop.owner?.phone
+                      ? user
+                        ? prop.owner.phone
+                        : prop.owner.phone.slice(0, -6) + "******"
+                      : ""}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
 
         {/* 🔥 ONLY OWNER CAN DRAW */}
         {user && user.role === "owner" && (
           <GeomanControl refreshProperties={fetchProperties} />
         )}
-
       </MapContainer>
     </div>
   );
