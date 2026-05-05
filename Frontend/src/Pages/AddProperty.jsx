@@ -9,7 +9,7 @@ const AddProperty = () => {
 
   const handleSubmit = async () => {
     await axios.post(
-      "http://localhost:5000/api/property",
+      "http://localhost:8000/api/property",
       data,
       {
         headers: {

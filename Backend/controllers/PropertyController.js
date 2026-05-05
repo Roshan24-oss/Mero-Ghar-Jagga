@@ -1,16 +1,35 @@
 import Property from "../models/Property.js";
 
-// SAVE PROPERTY
+// ✅ SAVE PROPERTY
 export const addProperty = async (req, res) => {
   try {
-    const { geometry } = req.body;
+    const {
+      geometry,
+      label,
+      price,
+      area,
+      address,
+      availableDays,
+      description,
+    } = req.body;
 
     if (!geometry) {
       return res.status(400).json({ message: "Geometry required" });
     }
 
+    // 🔒 Only owner can add
+    if (req.user.role !== "owner") {
+      return res.status(403).json({ message: "Only owners can add property" });
+    }
+
     const property = await Property.create({
       geometry,
+      label,
+      price,
+      area,
+      address,
+      availableDays,
+      description,
       owner: req.user._id,
     });
 
@@ -21,20 +40,18 @@ export const addProperty = async (req, res) => {
   }
 };
 
-// GET ALL PROPERTIES
+
+// ✅ GET ALL PROPERTIES
 export const getProperties = async (req, res) => {
   try {
     let properties;
 
-    // 👤 OWNER → only his properties
     if (req.user?.role === "owner") {
       properties = await Property.find({ owner: req.user._id }).populate(
         "owner",
         "fullName phone"
       );
-    } 
-    // 👥 USER / NOT LOGGED → all properties
-    else {
+    } else {
       properties = await Property.find().populate(
         "owner",
         "fullName phone"

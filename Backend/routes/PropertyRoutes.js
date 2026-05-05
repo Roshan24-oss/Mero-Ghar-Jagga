@@ -8,6 +8,6 @@ const router = express.Router();
 router.post("/", authMiddleware, addProperty);
 
 // everyone can view
-router.get("/",authMiddleware, getProperties);
+router.get("/",getProperties);
 
 export default router;
