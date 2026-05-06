@@ -5,14 +5,92 @@ import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { FaPlus } from "react-icons/fa";
 
-const Navbar = () => {
+const Navbar = ({ setSearchedLocation }) => {
+  const inputRef = useRef();
   const navigate = useNavigate();
   const { user, logout } = useContext(AuthContext);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [lockSuggestions, setLockSuggestions] = useState(false);
+
   const menuRef = useRef();
 
-  // ✅ Close dropdown when clicking outside
+  // ================= FETCH SUGGESTIONS =================
+  useEffect(() => {
+    const delayDebounce = setTimeout(async () => {
+      if (searchText.length < 3 || lockSuggestions) {
+        setSuggestions([]);
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${searchText}&countrycodes=np`
+        );
+        const data = await res.json();
+        setSuggestions(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchText, lockSuggestions]);
+
+  // ================= CLEAR UI =================
+  const clearUI = () => {
+    setSuggestions([]);
+    inputRef.current?.blur();
+  };
+
+  // ================= SELECT SUGGESTION =================
+  const handleSelect = (place) => {
+    const lat = parseFloat(place.lat);
+    const lon = parseFloat(place.lon);
+
+    setSearchText(place.display_name);
+    setSearchedLocation([lat, lon]);
+
+    clearUI();
+    setLockSuggestions(true); // 🔥 IMPORTANT
+  };
+
+  // ================= SEARCH BUTTON =================
+  const handleSearch = async () => {
+    if (!searchText) return;
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${searchText}&countrycodes=np`
+      );
+
+      const data = await res.json();
+
+      if (data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+
+        setSearchText(data[0].display_name);
+        setSearchedLocation([lat, lon]);
+
+        clearUI();
+        setLockSuggestions(true); // 🔥 IMPORTANT
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  // ================= UNLOCK WHEN USER TYPES AGAIN =================
+  useEffect(() => {
+    if (searchText.length === 0) {
+      setLockSuggestions(false);
+    }
+  }, [searchText]);
+
+  // ================= OUTSIDE CLICK =================
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -24,85 +102,103 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ Add Property logic
+  // ================= ADD PROPERTY =================
   const handleAddProperty = () => {
-    if (!user) {
-      navigate("/signin");
-      return;
-    }
-
-    if (user.role !== "owner") {
-      alert("Only owners can add property");
-      return;
-    }
-
+    if (!user) return navigate("/signin");
+    if (user.role !== "owner") return alert("Only owners can add property");
     navigate("/add-property");
   };
 
-  // ✅ Backend uses fullName
   const displayName = user?.fullName || "User";
 
   return (
     <nav className="fixed top-0 w-full bg-green-100 shadow-md z-[1000]">
-      <div className="flex justify-between items-center px-6">
+      <div className="flex justify-between items-center px-6 py-2">
 
-        {/* Logo */}
-        <div>
-          <img src={logo} alt="Logo" className="h-16 w-auto" />
+        {/* ================= LOGO ================= */}
+        <img src={logo} alt="Logo" className="h-14" />
+
+        {/* ================= SEARCH ================= */}
+        <div className="relative w-96">
+
+          <div className="flex items-center bg-white rounded-full shadow-md px-3 py-2 border border-gray-200">
+            <input
+              ref={inputRef}
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Search city, area, location..."
+              className="w-full outline-none px-2 text-sm"
+            />
+
+            <CiSearch
+              onClick={handleSearch}
+              className="text-2xl text-gray-600 cursor-pointer hover:text-blue-600 transition"
+            />
+          </div>
+
+          {/* ================= SUGGESTIONS ================= */}
+          {suggestions.length > 0 && (
+            <ul className="absolute top-12 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto z-50">
+
+              {suggestions.map((place, index) => (
+                <li
+                  key={index}
+                  onClick={() => handleSelect(place)}
+                  className="px-4 py-3 text-sm cursor-pointer hover:bg-blue-50 transition border-b last:border-none"
+                >
+                  <div className="font-medium text-gray-800">
+                    {place.display_name.split(",")[0]}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {place.display_name.split(",").slice(1, 3).join(",")}
+                  </div>
+                </li>
+              ))}
+
+            </ul>
+          )}
+
         </div>
 
-        {/* Search */}
-        <div className="flex items-center bg-white rounded-md px-2">
-          <input
-            type="text"
-            placeholder="Search based on city..."
-            className="px-4 py-2 outline-none w-80"
-          />
-          <CiSearch className="text-xl text-gray-600" />
-        </div>
-
-        {/* Right Actions */}
+        {/* ================= RIGHT SIDE ================= */}
         <div className="flex items-center gap-4">
 
-          {/* Add Property */}
+          {/* ADD PROPERTY */}
           <button
             onClick={handleAddProperty}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1.5 rounded-full hover:scale-95 transition"
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full hover:scale-95 transition"
           >
             <FaPlus className="text-xs" />
             Add Property
           </button>
 
-          {/* Auth */}
+          {/* AUTH */}
           {!user ? (
             <Link
               to="/signin"
-              className="bg-orange-500 font-bold rounded-2xl px-4 py-2 text-white hover:bg-orange-600"
+              className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600"
             >
               Sign In
             </Link>
           ) : (
             <div ref={menuRef} className="relative">
 
-              {/* Profile */}
               <div
-                onClick={() => setIsMenuOpen(prev => !prev)}
-                className="cursor-pointer flex flex-col items-center"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex flex-col items-center cursor-pointer"
               >
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                <div className="w-9 h-9 bg-blue-600 text-white flex items-center justify-center rounded-full font-bold">
                   {displayName.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-sm">{displayName}</span>
+                <span className="text-xs">{displayName}</span>
               </div>
 
-              {/* Dropdown */}
               {isMenuOpen && (
-                <div className="absolute right-0 mt-2 bg-white shadow-lg rounded-md p-3 w-44 text-black z-[2000]">
-
+                <div className="absolute right-0 mt-2 bg-white shadow-lg rounded-lg p-3 w-44">
                   <p className="font-semibold">{displayName}</p>
-
-                  <p className="text-sm text-gray-600">
-                    Role: {user?.role || "User"}
+                  <p className="text-sm text-gray-500">
+                    Role: {user?.role}
                   </p>
 
                   <button
@@ -111,7 +207,6 @@ const Navbar = () => {
                   >
                     Logout
                   </button>
-
                 </div>
               )}
 

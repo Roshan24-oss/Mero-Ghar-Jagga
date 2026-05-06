@@ -19,7 +19,6 @@ import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
 
-
 // ================= DRAW + FORM =================
 const GeomanControl = ({ refreshProperties }) => {
   const map = useMap();
@@ -105,7 +104,6 @@ const GeomanControl = ({ refreshProperties }) => {
 
   return (
     <>
-      {/* ================= MODAL ================= */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-[1000]">
           <div className="bg-white p-6 rounded-2xl w-[360px] space-y-2 shadow-xl">
@@ -113,61 +111,19 @@ const GeomanControl = ({ refreshProperties }) => {
               Property Details
             </h2>
 
-            <input
-              name="label"
-              placeholder="Title"
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
-
-            <input
-              name="address"
-              placeholder="Address"
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
-
-            <input
-              name="price"
-              placeholder="Price"
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
-
-            <input
-              name="area"
-              placeholder="Area"
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
-
-            <input
-              name="availableDays"
-              type="number"
-              placeholder="Available Days"
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
-
-            <textarea
-              name="description"
-              placeholder="Description"
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
+            <input name="label" placeholder="Title" onChange={handleChange} className="w-full border p-2 rounded" />
+            <input name="address" placeholder="Address" onChange={handleChange} className="w-full border p-2 rounded" />
+            <input name="price" placeholder="Price" onChange={handleChange} className="w-full border p-2 rounded" />
+            <input name="area" placeholder="Area" onChange={handleChange} className="w-full border p-2 rounded" />
+            <input name="availableDays" type="number" placeholder="Available Days" onChange={handleChange} className="w-full border p-2 rounded" />
+            <textarea name="description" placeholder="Description" onChange={handleChange} className="w-full border p-2 rounded" />
 
             <div className="flex justify-between pt-2">
-              <button
-                onClick={handleCancel}
-                className="px-4 py-2 bg-gray-300 rounded"
-              >
+              <button onClick={handleCancel} className="px-4 py-2 bg-gray-300 rounded">
                 Cancel
               </button>
 
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-              >
+              <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded">
                 Save
               </button>
             </div>
@@ -178,9 +134,21 @@ const GeomanControl = ({ refreshProperties }) => {
   );
 };
 
+// ================= FLY TO =================
+const FlyToLocation = ({ location }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (location) {
+      map.flyTo(location, 15);
+    }
+  }, [location]);
+
+  return null;
+};
 
 // ================= MAIN MAP =================
-const MapView = () => {
+const MapView = ({ searchedLocation }) => {
   const { BaseLayer, Overlay } = LayersControl;
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -222,13 +190,10 @@ const MapView = () => {
       iconSize: [32, 32],
     });
 
-  // ================= SAFE CENTER =================
   const getCenter = (geom) => {
     if (!geom?.coordinates) return null;
 
-    if (geom.type === "Point") {
-      return geom.coordinates;
-    }
+    if (geom.type === "Point") return geom.coordinates;
 
     if (geom.type === "Polygon") {
       const coords = geom.coordinates?.[0];
@@ -245,11 +210,8 @@ const MapView = () => {
 
   return (
     <div className="h-[90vh] w-full">
-      <MapContainer
-        center={[27.7172, 85.324]}
-        zoom={13}
-        className="h-full w-full"
-      >
+      <MapContainer center={[27.7172, 85.324]} zoom={13} className="h-full w-full">
+
         <LayersControl>
           <BaseLayer name="Street">
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -271,14 +233,21 @@ const MapView = () => {
           </Overlay>
         </LayersControl>
 
-        {/* ================= POLYGONS ================= */}
+        {/* 🔍 SEARCH RESULT */}
+        {searchedLocation && (
+          <>
+            <FlyToLocation location={searchedLocation} />
+            <Marker position={searchedLocation}>
+              <Popup>Searched Location</Popup>
+            </Marker>
+          </>
+        )}
+
+        {/* POLYGONS */}
         {properties.map((prop) => (
           <GeoJSON
             key={prop._id}
-            data={{
-              type: "Feature",
-              geometry: prop.geometry,
-            }}
+            data={{ type: "Feature", geometry: prop.geometry }}
             style={{ color: "red", weight: 3 }}
           >
             <Popup>
@@ -294,7 +263,7 @@ const MapView = () => {
           </GeoJSON>
         ))}
 
-        {/* ================= MARKERS (OWNER ICON) ================= */}
+        {/* MARKERS */}
         {properties.map((prop) => {
           const center = getCenter(prop.geometry);
           if (!center) return null;
@@ -310,42 +279,28 @@ const MapView = () => {
                 },
               }}
             >
-              {/* 🔥 BEAUTIFUL POPUP */}
               <Popup>
                 <div className="w-[220px] space-y-2">
-
-                  <h2 className="text-lg font-bold text-blue-600">
-                    {prop.label}
-                  </h2>
-
+                  <h2 className="text-lg font-bold text-blue-600">{prop.label}</h2>
                   <p className="text-sm">📍 {prop.address}</p>
                   <p className="text-sm">💰 Rs {prop.price}</p>
                   <p className="text-sm">📏 {prop.area}</p>
                   <p className="text-sm">⏳ {prop.availableDays} days</p>
-
-                  <p className="text-xs text-gray-600">
-                    {prop.description}
-                  </p>
-
+                  <p className="text-xs text-gray-600">{prop.description}</p>
                   <hr />
-
-                  <p className="text-sm">
-                    👤 {prop.owner?.fullName}
-                  </p>
-                  <p className="text-sm">
-                    📞 {prop.owner?.phone}
-                  </p>
-
+                  <p className="text-sm">👤 {prop.owner?.fullName}</p>
+                  <p className="text-sm">📞 {prop.owner?.phone}</p>
                 </div>
               </Popup>
             </Marker>
           );
         })}
 
-        {/* ================= DRAW TOOL ================= */}
+        {/* DRAW TOOL */}
         {user && user.role === "owner" && (
           <GeomanControl refreshProperties={fetchProperties} />
         )}
+
       </MapContainer>
     </div>
   );

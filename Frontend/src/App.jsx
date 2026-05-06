@@ -1,38 +1,38 @@
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route } from "react-router-dom";
-import UserLandingPage from "./Pages/UsersLandingPage";
+import UsersLandingPage from "./Pages/UsersLandingPage";
 import SignUp from "./Pages/SignUp.jsx";
 import SignIn from "./Pages/SignIn.jsx";
 import AddProperty from "./Pages/AddProperty.jsx";
 import ProtectedRoute from "../Routes/ProtectedRoute.jsx";
 
-import "leaflet/dist/leaflet.css";
-import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
-
 const App = () => {
+  const [searchedLocation, setSearchedLocation] = useState(null);
+
   return (
-    <div className="w-full h-screen">
-      <Routes>
-        {/* Home page */}
-        <Route path="/" element={<UserLandingPage />} />
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <UsersLandingPage
+            searchedLocation={searchedLocation}
+            setSearchedLocation={setSearchedLocation}
+          />
+        }
+      />
 
-        {/* Signup page */}
-        <Route path="/signup" element={<SignUp />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/signin" element={<SignIn />} />
 
-        {/* Sign in page */}
-        <Route path="/signin" element={<SignIn />} />
-
-        {/* Protected Route (Owner Only) */}
-        <Route
-          path="/add-property"
-          element={
-            <ProtectedRoute requireOwner={true}>
-              <AddProperty />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </div>
+      <Route
+        path="/add-property"
+        element={
+          <ProtectedRoute requireOwner={true}>
+            <AddProperty />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   );
 };
 
