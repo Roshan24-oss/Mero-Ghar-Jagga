@@ -1,30 +1,155 @@
-import User from "../models/User.js";
+import { otpStore } from "../utils/otpStore.js";
+import { sendOtpEmail } from "../utils/sendEmail.js";
+
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-// SIGNUP
-export const signup = async (req, res) => {
-  try {
-    const { fullName, email, phone, address, password, role } = req.body;
+import User from "../models/User.js";
 
-    // 1. Validate input
-    if (!fullName || !email || !phone || !address || !password) {
-      return res.status(400).json({ message: "Please enter all fields" });
+
+// =========================
+// SEND OTP
+// =========================
+export const sendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
     }
 
-    // 2. Check if user already exists
+    // generate OTP
+    const otp = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+
+    // store OTP
+    otpStore[email] = {
+  otp,
+  expires: Date.now() + 5 * 60 * 1000,
+  verified: false,
+};
+
+    // send email
+    await sendOtpEmail(email, otp);
+
+    return res.status(200).json({
+      message: "OTP sent successfully",
+    });
+
+  } catch (error) {
+    console.log("SEND OTP ERROR:", error);
+
+    return res.status(500).json({
+      message: "Failed to send OTP",
+    });
+  }
+};
+
+
+// =========================
+// VERIFY OTP
+// =========================
+export const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const storedOtp = otpStore[email];
+
+    if (!storedOtp) {
+      return res.status(400).json({
+        message: "OTP not found",
+      });
+    }
+
+    if (storedOtp.expires < Date.now()) {
+      delete otpStore[email];
+
+      return res.status(400).json({
+        message: "OTP expired",
+      });
+    }
+
+    if (storedOtp.otp !== otp) {
+      return res.status(400).json({
+        message: "Invalid OTP",
+      });
+    }
+
+    otpStore[email].verified = true;
+
+    return res.status(200).json({
+      message: "OTP verified successfully",
+    });
+
+  } catch (error) {
+    console.log("VERIFY OTP ERROR:", error);
+
+    return res.status(500).json({
+      message: "OTP verification failed",
+    });
+  }
+};
+
+
+// =========================
+// SIGNUP
+// =========================
+export const signup = async (req, res) => {
+  try {
+
+    const {
+      fullName,
+      email,
+      phone,
+      address,
+      password,
+      role,
+    } = req.body;
+
+    // validation
+    if (
+      !fullName ||
+      !email ||
+      !phone ||
+      !address ||
+      !password
+    ) {
+      return res.status(400).json({
+        message: "Please enter all fields",
+      });
+    }
+
+    // OTP check (IMPORTANT)
+    if (!otpStore[email] || !otpStore[email].verified) {
+      return res.status(400).json({
+        message: "OTP not verified",
+      });
+    }
+
+    if (!otpStore[email].verified) {
+      return res.status(400).json({
+        message: "OTP not verified",
+      });
+    }
+
+    // check existing user
     const existingUser = await User.findOne({
       $or: [{ email }, { phone }],
     });
 
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({
+        message: "User already exists",
+      });
     }
 
-    // 3. Hash password
+    // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Create user
+    // create user
     const user = await User.create({
       fullName,
       email,
@@ -34,14 +159,19 @@ export const signup = async (req, res) => {
       role,
     });
 
-    // 5. Create JWT
+    // JWT token
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      {
+        id: user._id,
+        role: user.role,
+      },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+      }
     );
 
-    // 6. Set cookie
+    // cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -49,8 +179,7 @@ export const signup = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // 7. Response
-    res.status(201).json({
+    return res.status(201).json({
       message: "User created successfully",
       user: {
         id: user._id,
@@ -61,42 +190,61 @@ export const signup = async (req, res) => {
         role: user.role,
       },
     });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.log("SIGNUP ERROR:", error);
+
+    return res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
+
+// =========================
 // LOGIN
+// =========================
 export const login = async (req, res) => {
   try {
+
     const { email, password } = req.body;
 
-    // 1. Validate
     if (!email || !password) {
-      return res.status(400).json({ message: "Please enter all fields" });
+      return res.status(400).json({
+        message: "Please enter all fields",
+      });
     }
 
-    // 2. Find user
     const user = await User.findOne({ email });
+
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({
+        message: "Invalid credentials",
+      });
     }
 
-    // 3. Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    // 4. Create JWT
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+    const isMatch = await bcrypt.compare(
+      password,
+      user.password
     );
 
-    // 5. Cookie
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Invalid credentials",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -104,9 +252,8 @@ export const login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // 6. Response
-    res.json({
-      message: "User logged in successfully",
+    return res.json({
+      message: "Login successful",
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -116,8 +263,12 @@ export const login = async (req, res) => {
         role: user.role,
       },
     });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.log("LOGIN ERROR:", error);
+
+    return res.status(500).json({
+      message: "Server error",
+    });
   }
 };
