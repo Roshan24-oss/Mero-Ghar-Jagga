@@ -18,6 +18,8 @@ import axiosInstance from "../api/axiosInstance.js";
 import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
+import {FaWhatsapp, FaHeart} from "react-icons/fa";
+
 
 // ================= DRAW + FORM =================
 const GeomanControl = ({ refreshProperties }) => {
@@ -150,7 +152,7 @@ const FlyToLocation = ({ location }) => {
 // ================= MAIN MAP =================
 const MapView = ({ searchedLocation }) => {
   const { BaseLayer, Overlay } = LayersControl;
-  const { user } = useContext(AuthContext);
+  const { user,savedProperties,setSavedProperties } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [properties, setProperties] = useState([]);
@@ -208,6 +210,26 @@ const MapView = ({ searchedLocation }) => {
     return null;
   };
 
+  const handleSaveProperty = (property) => {
+  if (!user) {
+    navigate("/signin");
+    return;
+  }
+
+  const alreadySaved = savedProperties.find(
+    (item) => item._id === property._id
+  );
+
+  if (alreadySaved) {
+    alert("Property already saved");
+    return;
+  }
+
+  setSavedProperties([...savedProperties, property]);
+
+  alert("Property saved ❤️");
+};
+  
   return (
     <div className="h-[90vh] w-full">
       <MapContainer center={[27.7172, 85.324]} zoom={13} className="h-full w-full">
@@ -282,6 +304,10 @@ const MapView = ({ searchedLocation }) => {
               <Popup>
                 <div className="w-[220px] space-y-2">
                   <h2 className="text-lg font-bold text-blue-600">{prop.label}</h2>
+                  <button onClick={()=>handleSaveProperty(prop)}
+                  className="flex items-center gap-2 bg-pink-500 text-white px-3 py-1 rounded-full text-sm hover:bg-pink-600 transition">
+                    <FaHeart /> Save Property 
+                  </button>
                   <p className="text-sm">📍 {prop.address}</p>
                   <p className="text-sm">💰 Rs {prop.price}</p>
                   <p className="text-sm">📏 {prop.area}</p>
@@ -290,6 +316,15 @@ const MapView = ({ searchedLocation }) => {
                   <hr />
                   <p className="text-sm">👤 {prop.owner?.fullName}</p>
                   <p className="text-sm">📞 {prop.owner?.phone}</p>
+                  
+                  <a
+                    href={`https://wa.me/${prop.owner?.phone}?text=Hello, I'm interested in your property "${prop.label}". Is it still available?`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-green-500 hover:text-green-600 animate-pulse font-bold"
+                  >
+                    <FaWhatsapp /> Chat on WhatsApp
+                  </a>
                 </div>
               </Popup>
             </Marker>

@@ -3,12 +3,14 @@ import logo from "../assets/Logo.png";
 import { CiSearch } from "react-icons/ci";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { FaPlus } from "react-icons/fa";
+
+import {FaPlus, FaHeart} from "react-icons/fa";
+
 
 const Navbar = ({ setSearchedLocation }) => {
   const inputRef = useRef();
   const navigate = useNavigate();
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, savedProperties } = useContext(AuthContext);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -105,7 +107,7 @@ const Navbar = ({ setSearchedLocation }) => {
   // ================= ADD PROPERTY =================
   const handleAddProperty = () => {
     if (!user) return navigate("/signin");
-    if (user.role !== "owner") return alert("Only owners can add property");
+    if (user.role !== "owner") return alert("Register your account as an owner to add properties");
     navigate("/add-property");
   };
 
@@ -163,6 +165,18 @@ const Navbar = ({ setSearchedLocation }) => {
 
         {/* ================= RIGHT SIDE ================= */}
         <div className="flex items-center gap-4">
+          
+          <div onClick={()=> navigate("/saved-properties")}
+             className="relative cursor-pointer">
+              <FaHeart className="text-2xl text-pink-500"/>
+
+              {savedProperties.length>0 && (
+                <span className="absolute -top-2 bg-red-500 text-white text-[10px] rounded-full">
+                  {savedProperties.length}
+                </span>
+              )}
+
+          </div>
 
           {/* ADD PROPERTY */}
           <button

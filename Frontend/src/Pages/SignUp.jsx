@@ -6,7 +6,6 @@ import axiosInstance from "../api/axiosInstance.js";
 const SignUp = () => {
 
   const navigate = useNavigate();
-
   const { login } = useContext(AuthContext);
 
   // OTP STATES
@@ -35,7 +34,6 @@ const SignUp = () => {
 
   // HANDLE INPUT
   const handleChange = (e) => {
-
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -44,7 +42,6 @@ const SignUp = () => {
 
   // HANDLE ROLE
   const handleRoleChange = (selectedRole) => {
-
     setFormData({
       ...formData,
       role: selectedRole,
@@ -53,10 +50,8 @@ const SignUp = () => {
 
   // SEND OTP
   const sendOtp = async () => {
-
     try {
 
-      // validation
       if (
         !fullName ||
         !email ||
@@ -69,57 +64,37 @@ const SignUp = () => {
 
       const res = await axiosInstance.post(
         "/auth/send-otp",
-        {
-          email,
-        }
+        { email }
       );
 
       alert(res.data.message);
-
       setOtpSent(true);
 
     } catch (error) {
-
       console.log(error);
-
-      alert(
-        error.response?.data?.message ||
-        "Failed to send OTP"
-      );
+      alert(error.response?.data?.message || "Failed to send OTP");
     }
   };
 
   // VERIFY OTP
   const verifyOtp = async () => {
-
     try {
-
       const res = await axiosInstance.post(
         "/auth/verify-otp",
-        {
-          email,
-          otp,
-        }
+        { email, otp }
       );
 
       alert(res.data.message);
-
       setOtpVerified(true);
 
     } catch (error) {
-
       console.log(error);
-
-      alert(
-        error.response?.data?.message ||
-        "Invalid OTP"
-      );
+      alert(error.response?.data?.message || "Invalid OTP");
     }
   };
 
   // FINAL SIGNUP
   const handleSignup = async () => {
-
     try {
 
       if (!otpVerified) {
@@ -129,28 +104,19 @@ const SignUp = () => {
       const res = await axiosInstance.post(
         "/auth/signup",
         formData,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
 
       console.log(res.data);
 
-      // login user
       login(res.data.user);
 
       alert("Signup Successful");
-
       navigate("/");
 
     } catch (error) {
-
       console.log(error);
-
-      alert(
-        error.response?.data?.message ||
-        "Signup failed"
-      );
+      alert(error.response?.data?.message || "Signup failed");
     }
   };
 
@@ -193,7 +159,7 @@ const SignUp = () => {
           className="w-full mb-3 p-3 border rounded"
         />
 
-        {/* PHONE */}
+        {/* PHONE (YOUR ORIGINAL) */}
         <input
           type="text"
           name="phone"
@@ -241,16 +207,16 @@ const SignUp = () => {
           </button>
         </div>
 
-        {/* SEND OTP BUTTON */}
+        {/* SEND OTP */}
         <button
           type="button"
           onClick={sendOtp}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white p-3 rounded mb-3 transition"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white p-3 rounded mb-3"
         >
           Send OTP
         </button>
 
-        {/* OTP SECTION */}
+        {/* OTP */}
         {otpSent && (
           <>
             <input
@@ -264,35 +230,30 @@ const SignUp = () => {
             <button
               type="button"
               onClick={verifyOtp}
-              className={`w-full p-3 rounded mb-3 text-white transition ${
+              className={`w-full p-3 rounded mb-3 text-white ${
                 otpVerified
                   ? "bg-green-700"
                   : "bg-green-500 hover:bg-green-600"
               }`}
             >
-              {otpVerified
-                ? "OTP Verified"
-                : "Verify OTP"}
+              {otpVerified ? "OTP Verified" : "Verify OTP"}
             </button>
           </>
         )}
 
-        {/* FINAL SIGNUP BUTTON */}
+        {/* SIGNUP */}
         <button
           type="button"
           onClick={handleSignup}
-          className="w-full bg-black hover:bg-gray-900 text-white p-3 rounded transition"
+          className="w-full bg-black hover:bg-gray-900 text-white p-3 rounded"
         >
           Create Account
         </button>
 
         {/* LOGIN */}
         <p className="text-center mt-5">
-          Already have an account?{" "}
-          <Link
-            to="/signin"
-            className="text-blue-500 hover:underline"
-          >
+          Already have account?{" "}
+          <Link to="/signin" className="text-blue-500">
             Login
           </Link>
         </p>

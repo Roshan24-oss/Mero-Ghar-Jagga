@@ -1,6 +1,6 @@
 import Property from "../models/Property.js";
 
-// ✅ SAVE PROPERTY
+
 export const addProperty = async (req, res) => {
   try {
     const {
@@ -19,7 +19,7 @@ export const addProperty = async (req, res) => {
 
     // 🔒 Only owner can add
     if (req.user.role !== "owner") {
-      return res.status(403).json({ message: "Only owners can add property" });
+      return res.status(403).json({ message: "Register your account as an owner to add properties" });
     }
 
     const property = await Property.create({

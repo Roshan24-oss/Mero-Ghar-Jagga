@@ -4,7 +4,7 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-
+const [savedProperties, setSavedProperties]=useState([]);
   // Load user when app starts
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, savedProperties, setSavedProperties }}>
       {children}
     </AuthContext.Provider>
   );

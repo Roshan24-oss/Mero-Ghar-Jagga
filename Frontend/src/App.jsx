@@ -5,6 +5,7 @@ import SignUp from "./Pages/SignUp.jsx";
 import SignIn from "./Pages/SignIn.jsx";
 import AddProperty from "./Pages/AddProperty.jsx";
 import ProtectedRoute from "../Routes/ProtectedRoute.jsx";
+import SavedProperties from "./Pages/SavedProperties.jsx";
 
 const App = () => {
   const [searchedLocation, setSearchedLocation] = useState(null);
@@ -29,6 +30,14 @@ const App = () => {
         element={
           <ProtectedRoute requireOwner={true}>
             <AddProperty />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/saved-properties"
+        element={
+          <ProtectedRoute>
+            <SavedProperties />
           </ProtectedRoute>
         }
       />
