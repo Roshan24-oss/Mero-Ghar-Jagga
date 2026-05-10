@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 
 const propertySchema = new mongoose.Schema(
   {
+    
+
     title: {
       type: String,
       default: "",
@@ -12,9 +14,11 @@ const propertySchema = new mongoose.Schema(
       default: "",
     },
 
-    type: {
+    // 🔥 PROPERTY CATEGORY
+    propertyType: {
       type: String,
-      enum: ["land", "house"],
+      enum: ["land", "home", "room", "office"],
+      required: true,
       default: "land",
     },
 
@@ -28,7 +32,6 @@ const propertySchema = new mongoose.Schema(
       default: "",
     },
 
-    // 🔥 NEW FIELDS
     address: {
       type: String,
       default: "",
@@ -44,16 +47,69 @@ const propertySchema = new mongoose.Schema(
       default: "",
     },
 
+    // ================= HOME =================
+
+    bhk: {
+      type: String,
+      default: "",
+    },
+
+    furnished: {
+      type: String,
+      default: "",
+    },
+
+    parking: {
+      type: String,
+      default: "",
+    },
+
+    // ================= LAND =================
+
+    roadAccess: {
+      type: String,
+      default: "",
+    },
+
+    // ================= ROOM RENT =================
+
+    roomType: {
+      type: String,
+      default: "",
+    },
+
+    wifi: {
+      type: String,
+      default: "",
+    },
+
+    // ================= OFFICE RENT =================
+
+    floorNumber: {
+      type: String,
+      default: "",
+    },
+
+    meetingRoom: {
+      type: String,
+      default: "",
+    },
+
+    // ================= GEOJSON =================
+
     geometry: {
       type: {
         type: String,
         required: true,
       },
+
       coordinates: {
         type: Array,
         required: true,
       },
     },
+
+    // ================= OWNER =================
 
     owner: {
       type: mongoose.Schema.Types.ObjectId,
@@ -63,6 +119,7 @@ const propertySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// GEO INDEX
 propertySchema.index({ geometry: "2dsphere" });
 
 export default mongoose.model("Property", propertySchema);
