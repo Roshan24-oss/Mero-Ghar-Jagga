@@ -24,7 +24,7 @@ const AddProperty = () => {
     <div>
       <input placeholder="title" onChange={e => setData({...data, title:e.target.value})}/>
       <textarea placeholder="description" onChange={e => setData({...data, description:e.target.value})}/>
-      <button onClick={handleSubmit}>Submit</button>
+      <button onClick={handleSubmit}>Submit button</button>
     </div>
   );
 };
