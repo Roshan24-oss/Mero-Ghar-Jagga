@@ -1,2 +1,2 @@
 This is Real Estate project.
-website on development phase.
+website on development phase
