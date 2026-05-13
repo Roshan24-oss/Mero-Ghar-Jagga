@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaWhatsapp, FaHeart } from "react-icons/fa";
 
 import { profileIcon, getCenter } from "./mapUtils";
-import {format} from "date-fns";
+import { format } from "date-fns";
 
 const PropertyMarkers = ({
   properties,
@@ -37,6 +37,16 @@ const PropertyMarkers = ({
   return (
     <>
       {properties.map((prop) => {
+
+        // SAFE PROPERTY TYPE CHECK
+        const propertyType =
+          prop.propertyType?.toLowerCase()?.trim();
+
+        // ❌ DO NOT SHOW MARKER FOR HOME
+        if (propertyType === "home") {
+          return null;
+        }
+
         const center = getCenter(prop.geometry);
 
         if (!center) return null;
@@ -98,99 +108,65 @@ const PropertyMarkers = ({
                   {prop.description}
                 </p>
 
-<p className="text-xs text-gray-500">
-  Registered: {format(new Date(prop.createdAt), "PPP p")}
-</p>
+                <p className="text-xs text-gray-500">
+                  Registered:{" "}
+                  {format(
+                    new Date(prop.createdAt),
+                    "PPP p"
+                  )}
+                </p>
+
                 {/* ================= LAND ================= */}
-                {prop.propertyType === "land" && (
+                {propertyType === "land" && (
                   <div className="bg-yellow-50 p-2 rounded-lg space-y-1">
                     <p className="font-semibold text-yellow-700">
                       🟫 Land Details
                     </p>
 
                     <p className="text-sm">
-                      🛣 Road Access:
-                      {" "}
+                      🛣 Road Access:{" "}
                       {prop.roadAccess || "N/A"}
                     </p>
                   </div>
                 )}
 
-                {/* ================= HOME ================= */}
-                {prop.propertyType === "home" && (
-                  <div className="bg-blue-50 p-2 rounded-lg space-y-1">
-                    <p className="font-semibold text-blue-700">
-                      🏠 Home Details
-                    </p>
-
-                    <p className="text-sm">
-                      🛏 BHK:
-                      {" "}
-                      {prop.bhk || "N/A"}
-                    </p>
-
-                    <p className="text-sm">
-                      🛋 Furnished:
-                      {" "}
-                      {prop.furnished || "N/A"}
-                    </p>
-
-                    <p className="text-sm">
-                      🚗 Parking:
-                      {" "}
-                      {prop.parking || "N/A"}
-                    </p>
-                  </div>
-                )}
-
                 {/* ================= ROOM ================= */}
-                {prop.propertyType === "room" && (
+                {propertyType === "room" && (
                   <div className="bg-green-50 p-2 rounded-lg space-y-1">
                     <p className="font-semibold text-green-700">
                       🛏 Room Details
                     </p>
 
                     <p className="text-sm">
-                      🛌 Room Type:
-                      {" "}
+                      🛌 Room Type:{" "}
                       {prop.roomType || "N/A"}
                     </p>
 
                     <p className="text-sm">
-                      📶 Wifi:
-                      {" "}
+                      📶 Wifi:{" "}
                       {prop.wifi || "N/A"}
                     </p>
                   </div>
                 )}
 
                 {/* ================= OFFICE ================= */}
-                {prop.propertyType === "office" && (
+                {propertyType === "office" && (
                   <div className="bg-gray-100 p-2 rounded-lg space-y-1">
                     <p className="font-semibold text-gray-700">
                       🏢 Office Details
                     </p>
 
                     <p className="text-sm">
-                      🏬 Floor:
-                      {" "}
+                      🏬 Floor:{" "}
                       {prop.floorNumber || "N/A"}
                     </p>
 
                     <p className="text-sm">
-                      👥 Meeting Room:
-                      {" "}
+                      👥 Meeting Room:{" "}
                       {prop.meetingRoom || "N/A"}
                     </p>
                   </div>
                 )}
-
-                {/* REGISTER DATE */}
-                <p className="text-xs text-gray-500">
-                  📅 Registered:
-                  {" "}
-                  {new Date(prop.createdAt).toLocaleString()}
-                </p>
 
                 <hr />
 

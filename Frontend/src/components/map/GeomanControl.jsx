@@ -58,6 +58,10 @@ const GeomanControl = ({ refreshProperties }) => {
 
     const handleCreate = (e) => {
       setTempLayer(e.layer);
+
+      // DISABLE DRAWING WHEN MODAL OPENS
+      map.pm.disableDraw();
+
       setShowModal(true);
     };
 
@@ -75,6 +79,15 @@ const GeomanControl = ({ refreshProperties }) => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  // ================= ENABLE DRAW AGAIN =================
+  const enableMapDrawing = () => {
+    map.pm.enableGlobalEditMode(false);
+
+    map.dragging.enable();
+    map.doubleClickZoom.enable();
+    map.scrollWheelZoom.enable();
   };
 
   // ================= SAVE PROPERTY =================
@@ -98,6 +111,8 @@ const GeomanControl = ({ refreshProperties }) => {
       setShowModal(false);
 
       setTempLayer(null);
+
+      enableMapDrawing();
 
       // RESET FORM
       setFormData({
@@ -140,6 +155,8 @@ const GeomanControl = ({ refreshProperties }) => {
     setShowModal(false);
 
     setTempLayer(null);
+
+    enableMapDrawing();
   };
 
   return (
