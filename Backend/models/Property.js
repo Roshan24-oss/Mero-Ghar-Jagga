@@ -108,7 +108,7 @@ const propertySchema = new mongoose.Schema(
         required: true,
       },
     },
-
+images: [String],
     // ================= OWNER =================
 
     owner: {

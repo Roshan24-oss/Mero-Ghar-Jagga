@@ -1,6 +1,5 @@
 import Property from "../models/Property.js";
 
-
 export const addProperty = async (req, res) => {
   try {
     const {
@@ -11,35 +10,92 @@ export const addProperty = async (req, res) => {
       address,
       availableDays,
       description,
+
+      // PROPERTY TYPE
+      propertyType,
+
+      // HOME
+      bhk,
+      furnished,
+      parking,
+
+      // LAND
+      roadAccess,
+
+      // ROOM
+      roomType,
+      wifi,
+
+      // OFFICE
+      floorNumber,
+      meetingRoom,
     } = req.body;
 
+    // ✅ GEOMETRY REQUIRED
     if (!geometry) {
-      return res.status(400).json({ message: "Geometry required" });
+      return res.status(400).json({
+        message: "Geometry required",
+      });
     }
 
-    // 🔒 Only owner can add
+    // 🔒 ONLY OWNER CAN ADD
     if (req.user.role !== "owner") {
-      return res.status(403).json({ message: "Register your account as an owner to add properties" });
+      return res.status(403).json({
+        message:
+          "Register your account as an owner to add properties",
+      });
     }
 
+    // ✅ IMAGE PATHS
+    const imagePaths = req.files?.map(
+      (file) => `/uploads/${file.filename}`
+    ) || [];
+
+    // ✅ CREATE PROPERTY
     const property = await Property.create({
-      geometry,
+      geometry: JSON.parse(geometry),
+
       label,
       price,
       area,
       address,
       availableDays,
       description,
+
+      propertyType,
+
+      // HOME
+      bhk,
+      furnished,
+      parking,
+
+      // LAND
+      roadAccess,
+
+      // ROOM
+      roomType,
+      wifi,
+
+      // OFFICE
+      floorNumber,
+      meetingRoom,
+
+      // IMAGES
+      images: imagePaths,
+
       owner: req.user._id,
     });
 
     res.status(201).json(property);
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Error saving property" });
+
+    res.status(500).json({
+      message: "Error saving property",
+    });
   }
 };
-
 
 // ✅ GET ALL PROPERTIES
 export const getProperties = async (req, res) => {
@@ -47,7 +103,9 @@ export const getProperties = async (req, res) => {
     let properties;
 
     if (req.user?.role === "owner") {
-      properties = await Property.find({ owner: req.user._id }).populate(
+      properties = await Property.find({
+        owner: req.user._id,
+      }).populate(
         "owner",
         "fullName phone"
       );
@@ -59,8 +117,12 @@ export const getProperties = async (req, res) => {
     }
 
     res.json(properties);
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Error fetching properties" });
+
+    res.status(500).json({
+      message: "Error fetching properties",
+    });
   }
 };
