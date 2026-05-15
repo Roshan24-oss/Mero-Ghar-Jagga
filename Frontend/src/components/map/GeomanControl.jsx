@@ -1,3 +1,5 @@
+// GeomanControl.jsx
+
 import { useEffect, useState } from "react";
 import { useMap } from "react-leaflet";
 
@@ -12,6 +14,9 @@ const GeomanControl = ({ refreshProperties }) => {
   const [showModal, setShowModal] = useState(false);
 
   const [tempLayer, setTempLayer] = useState(null);
+
+  // ✅ IMAGES STATE
+  const [images, setImages] = useState([]);
 
   const [formData, setFormData] = useState({
     propertyType: "",
@@ -81,6 +86,11 @@ const GeomanControl = ({ refreshProperties }) => {
     });
   };
 
+  // ✅ HANDLE IMAGE CHANGE
+  const handleImageChange = (e) => {
+    setImages(Array.from(e.target.files));
+  };
+
   // ================= ENABLE DRAW AGAIN =================
   const enableMapDrawing = () => {
     map.pm.enableGlobalEditMode(false);
@@ -97,13 +107,36 @@ const GeomanControl = ({ refreshProperties }) => {
     const geoJSON = tempLayer.toGeoJSON();
 
     try {
-      await axiosInstance.post("/property", {
-        geometry: geoJSON.geometry,
+      // ✅ CREATE FORMDATA
+      const data = new FormData();
 
-        ...formData,
+      // GEOMETRY
+      data.append(
+        "geometry",
+        JSON.stringify(geoJSON.geometry)
+      );
 
-        availableDays:
-          Number(formData.availableDays) || 0,
+      // FORM FIELDS
+      Object.keys(formData).forEach((key) => {
+        data.append(key, formData[key]);
+      });
+
+      // AVAILABLE DAYS
+      data.set(
+        "availableDays",
+        Number(formData.availableDays) || 0
+      );
+
+      // ✅ IMAGES
+      images.forEach((img) => {
+        data.append("images", img);
+      });
+
+      // ✅ API CALL
+      await axiosInstance.post("/property", data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       alert("Property saved ✅");
@@ -138,7 +171,11 @@ const GeomanControl = ({ refreshProperties }) => {
         meetingRoom: "",
       });
 
+      // RESET IMAGES
+      setImages([]);
+
       refreshProperties();
+
     } catch (err) {
       console.error(err);
 
@@ -230,6 +267,25 @@ const GeomanControl = ({ refreshProperties }) => {
               onChange={handleChange}
               className="w-full border p-2 rounded"
             />
+
+            {/* ✅ IMAGE INPUT */}
+            <div>
+              <label className="block mb-1 font-semibold">
+                Property Images
+              </label>
+
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full border p-2 rounded"
+              />
+
+              <p className="text-xs text-gray-500 mt-1">
+                You can upload up to 5 images
+              </p>
+            </div>
 
             {/* ================= LAND ================= */}
             {formData.propertyType === "land" && (

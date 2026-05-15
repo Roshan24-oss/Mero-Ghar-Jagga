@@ -1,3 +1,5 @@
+// PropertyMarkers.jsx
+
 import { Marker, Popup } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
 import { FaWhatsapp, FaHeart } from "react-icons/fa";
@@ -42,10 +44,7 @@ const PropertyMarkers = ({
         const propertyType =
           prop.propertyType?.toLowerCase()?.trim();
 
-        // ❌ DO NOT SHOW MARKER FOR HOME
-        if (propertyType === "home") {
-          return null;
-        }
+       
 
         const center = getCenter(prop.geometry);
 
@@ -75,6 +74,15 @@ const PropertyMarkers = ({
                     {prop.propertyType}
                   </span>
                 </div>
+
+                {/* ✅ PROPERTY IMAGE */}
+                {prop.images?.length > 0 && (
+                  <img
+                    src={`http://localhost:8000${prop.images[0]}`}
+                    alt="property"
+                    className="w-full h-[140px] object-cover rounded-lg"
+                  />
+                )}
 
                 {/* SAVE BUTTON */}
                 <button

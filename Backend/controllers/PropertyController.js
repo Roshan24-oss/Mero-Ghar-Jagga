@@ -125,4 +125,4 @@ export const getProperties = async (req, res) => {
       message: "Error fetching properties",
     });
   }
-};
+};   
