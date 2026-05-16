@@ -3,15 +3,17 @@ import logo from "../assets/Logo.png";
 import { CiSearch } from "react-icons/ci";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { FaFilter } from "react-icons/fa";
 
 import {FaPlus, FaHeart} from "react-icons/fa";
 
 
-const Navbar = ({ setSearchedLocation }) => {
+const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter }) => {
   const inputRef = useRef();
   const navigate = useNavigate();
   const { user, logout, savedProperties } = useContext(AuthContext);
 
+  const[isFilterOpen, setIsFilterOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -164,6 +166,75 @@ const Navbar = ({ setSearchedLocation }) => {
         </div>
 
         {/* ================= RIGHT SIDE ================= */}
+        
+<div className="relative px-8">
+
+  <button
+    onClick={() => setIsFilterOpen(!isFilterOpen)}
+    className="text-xl"
+  >
+    <FaFilter />
+  </button>
+
+  {isFilterOpen && (
+    <div className="absolute right-0 mt-2 bg-white shadow-lg rounded-lg p-2 w-44 z-50">
+
+      <button
+        onClick={() => {
+          setSelectedFilter("all");
+          setIsFilterOpen(false);
+        }}
+        className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
+      >
+        Show All
+      </button>
+
+      <button
+        onClick={() => {
+          setSelectedFilter("home");
+          setIsFilterOpen(false);
+        }}
+        className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
+      >
+        Home
+      </button>
+
+      <button
+        onClick={() => {
+          setSelectedFilter("land");
+          setIsFilterOpen(false);
+        }}
+        className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
+      >
+        Land
+      </button>
+
+      <button
+        onClick={() => {
+          setSelectedFilter("room");
+          setIsFilterOpen(false);
+        }}
+        className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
+      >
+        Room Rent
+      </button>
+
+      <button
+        onClick={() => {
+          setSelectedFilter("office");
+          setIsFilterOpen(false);
+        }}
+        className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
+      >
+        Office Rent
+      </button>
+
+    </div>
+  )}
+
+</div>
+
+
         <div className="flex items-center gap-4">
           
           <div onClick={()=> navigate("/saved-properties")}
