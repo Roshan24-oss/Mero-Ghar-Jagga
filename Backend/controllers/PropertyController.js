@@ -1,4 +1,7 @@
 import Property from "../models/Property.js";
+import PropertyLike from "../models/PropertyLike.js";
+import PropertyFavorite from "../models/PropertyFavoorite.js";
+import PropertyView from "../models/PropertyView.js";
 
 export const addProperty = async (req, res) => {
   try {
@@ -126,3 +129,173 @@ export const getProperties = async (req, res) => {
     });
   }
 };   
+
+export const addView = async (req, res) => {
+  try {
+    const { propertyId } = req.params;
+    const { visitorId } = req.body;
+
+    let existingView;
+
+    if (req.user) {
+      existingView = await PropertyView.findOne({
+        propertyId,
+        userId: req.user._id,
+      });
+    } else {
+      existingView = await PropertyView.findOne({
+        propertyId,
+        visitorId,
+      });
+    }
+
+    if (existingView) {
+      return res.json({
+        success: true,
+      });
+    }
+
+    await PropertyView.create({
+      propertyId,
+      userId: req.user?._id || null,
+      visitorId,
+    });
+
+    await Property.findByIdAndUpdate(
+      propertyId,
+      {
+        $inc: {
+          views: 1,
+        },
+      }
+    );
+
+    res.json({
+      success: true,
+    });
+
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      message: "View error",
+    });
+  }
+};
+
+
+export const toggleLike = async (
+  req,
+  res
+) => {
+  try {
+    const { propertyId } = req.params;
+
+    const existingLike =
+      await PropertyLike.findOne({
+        propertyId,
+        userId: req.user._id,
+      });
+
+    if (existingLike) {
+
+      await existingLike.deleteOne();
+
+      await Property.findByIdAndUpdate(
+        propertyId,
+        {
+          $inc: {
+            likesCount: -1,
+          },
+        }
+      );
+
+      return res.json({
+        liked: false,
+      });
+    }
+
+    await PropertyLike.create({
+      propertyId,
+      userId: req.user._id,
+    });
+
+    await Property.findByIdAndUpdate(
+      propertyId,
+      {
+        $inc: {
+          likesCount: 1,
+        },
+      }
+    );
+
+    res.json({
+      liked: true,
+    });
+
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      message: "Like error",
+    });
+  }
+};
+
+export const toggleFavorite = async (
+  req,
+  res
+) => {
+  try {
+    const { propertyId } = req.params;
+
+    const existingFavorite =
+      await PropertyFavorite.findOne({
+        propertyId,
+        userId: req.user._id,
+      });
+
+    if (existingFavorite) {
+
+      await existingFavorite.deleteOne();
+
+      await Property.findByIdAndUpdate(
+        propertyId,
+        {
+          $inc: {
+            favoritesCount: -1,
+          },
+        }
+      );
+
+      return res.json({
+        saved: false,
+      });
+    }
+
+    await PropertyFavorite.create({
+      propertyId,
+      userId: req.user._id,
+    });
+
+    await Property.findByIdAndUpdate(
+      propertyId,
+      {
+        $inc: {
+          favoritesCount: 1,
+        },
+      }
+    );
+
+    res.json({
+      saved: true,
+    });
+
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      message: "Favorite error",
+    });
+  }
+};

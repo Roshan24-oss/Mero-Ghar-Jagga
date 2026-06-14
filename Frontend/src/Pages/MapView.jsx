@@ -74,6 +74,7 @@ const filteredProperties =
           user={user}
           savedProperties={savedProperties}
           setSavedProperties={setSavedProperties}
+           refreshProperties={fetchProperties}
         />
 
         {user && user.role === "owner" &&(

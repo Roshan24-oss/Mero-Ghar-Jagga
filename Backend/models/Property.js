@@ -115,6 +115,19 @@ images: [String],
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
+    views:{
+      type:Number,
+      default:0,
+    },
+    likesCount:{
+      type:Number,
+      default:0,
+    },
+    favoritesCount:{
+      type:Number,
+      default:0,
+    },
   },
   { timestamps: true }
 );

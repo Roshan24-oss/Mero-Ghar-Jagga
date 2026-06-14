@@ -4,6 +4,7 @@ import { Marker, Popup } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
 import { FaWhatsapp, FaHeart } from "react-icons/fa";
 
+import axiosInstance from "../../api/axiosInstance"; // ✅ NEW ADD
 import { profileIcon, getCenter } from "./mapUtils";
 import { format } from "date-fns";
 
@@ -12,10 +13,69 @@ const PropertyMarkers = ({
   user,
   savedProperties,
   setSavedProperties,
+  refreshProperties, // ✅ NEW ADD
 }) => {
   const navigate = useNavigate();
 
-  // ================= SAVE PROPERTY =================
+  // ================= VIEW PROPERTY (NEW ADD) =================
+  const handleView = async (propertyId) => {
+    try {
+      const visitorId =
+        localStorage.getItem("visitorId") ||
+        crypto.randomUUID();
+
+      localStorage.setItem("visitorId", visitorId);
+
+      await axiosInstance.post(
+        `/property/view/${propertyId}`,
+        {
+          visitorId,
+        }
+      );
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  // ================= LIKE PROPERTY (NEW ADD) =================
+
+const handleLike = async (propertyId) => {
+  if (!user) {
+    navigate("/signin");
+    return;
+  }
+
+  try {
+    await axiosInstance.post(
+      `/property/like/${propertyId}`
+    );
+
+    refreshProperties();
+
+  } catch (err) {
+    console.log(err);
+  }
+};
+  // ================= FAVORITE PROPERTY (NEW ADD) =================
+ 
+const handleFavorite = async (propertyId) => {
+  if (!user) {
+    navigate("/signin");
+    return;
+  }
+
+  try {
+    await axiosInstance.post(
+      `/property/favorite/${propertyId}`
+    );
+
+    refreshProperties();
+
+  } catch (err) {
+    console.log(err);
+  }
+};
+  // ================= SAVE PROPERTY (YOUR EXISTING CODE) =================
   const handleSaveProperty = (property) => {
     if (!user) {
       navigate("/signin");
@@ -39,12 +99,8 @@ const PropertyMarkers = ({
   return (
     <>
       {properties.map((prop) => {
-
-        // SAFE PROPERTY TYPE CHECK
         const propertyType =
           prop.propertyType?.toLowerCase()?.trim();
-
-       
 
         const center = getCenter(prop.geometry);
 
@@ -57,7 +113,8 @@ const PropertyMarkers = ({
             icon={profileIcon(prop.owner?.fullName)}
             eventHandlers={{
               click: () => {
-                if (!user) navigate("/signin");
+                handleView(prop._id); // 🔥 NEW ADD (VIEW TRACKING)
+
               },
             }}
           >
@@ -75,7 +132,7 @@ const PropertyMarkers = ({
                   </span>
                 </div>
 
-                {/* ✅ PROPERTY IMAGE */}
+                {/* IMAGE */}
                 {prop.images?.length > 0 && (
                   <img
                     src={`http://localhost:8000${prop.images[0]}`}
@@ -84,7 +141,7 @@ const PropertyMarkers = ({
                   />
                 )}
 
-                {/* SAVE BUTTON */}
+                {/* SAVE BUTTON (YOUR OLD CODE) */}
                 <button
                   onClick={() => handleSaveProperty(prop)}
                   className="flex items-center gap-2 bg-pink-500 text-white px-3 py-1 rounded-full text-sm hover:bg-pink-600 transition"
@@ -93,19 +150,37 @@ const PropertyMarkers = ({
                   Save Property
                 </button>
 
-                {/* COMMON DETAILS */}
-                <p className="text-sm">
-                  📍 {prop.address}
-                </p>
+                {/* ================= NEW ACTION BUTTONS ================= */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleLike(prop._id)}
+                    className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                  >
+                    ❤️ Like
+                  </button>
 
-                <p className="text-sm">
-                  💰 Rs {prop.price}
-                </p>
+                  <button
+                    onClick={() => handleFavorite(prop._id)}
+                    className="bg-yellow-500 text-white px-2 py-1 rounded text-xs"
+                  >
+                    🔖 Save
+                  </button>
+                </div>
+
+                {/* DETAILS */}
+                <p className="text-sm">📍 {prop.address}</p>
+                <p className="text-sm">💰 Rs {prop.price}</p>
+
+                <div className="flex gap-3 text-sm">
+  <span>👁 {prop.views || 0}</span>
+
+  <span>❤️ {prop.likesCount || 0}</span>
+
+  <span>🔖 {prop.favoritesCount || 0}</span>
+</div>
 
                 {prop.area && (
-                  <p className="text-sm">
-                    📏 {prop.area}
-                  </p>
+                  <p className="text-sm">📏 {prop.area}</p>
                 )}
 
                 <p className="text-sm">
@@ -118,67 +193,10 @@ const PropertyMarkers = ({
 
                 <p className="text-xs text-gray-500">
                   Registered:{" "}
-                  {format(
-                    new Date(prop.createdAt),
-                    "PPP p"
-                  )}
+                  {format(new Date(prop.createdAt), "PPP p")}
                 </p>
 
-                {/* ================= LAND ================= */}
-                {propertyType === "land" && (
-                  <div className="bg-yellow-50 p-2 rounded-lg space-y-1">
-                    <p className="font-semibold text-yellow-700">
-                      🟫 Land Details
-                    </p>
-
-                    <p className="text-sm">
-                      🛣 Road Access:{" "}
-                      {prop.roadAccess || "N/A"}
-                    </p>
-                  </div>
-                )}
-
-                {/* ================= ROOM ================= */}
-                {propertyType === "room" && (
-                  <div className="bg-green-50 p-2 rounded-lg space-y-1">
-                    <p className="font-semibold text-green-700">
-                      🛏 Room Details
-                    </p>
-
-                    <p className="text-sm">
-                      🛌 Room Type:{" "}
-                      {prop.roomType || "N/A"}
-                    </p>
-
-                    <p className="text-sm">
-                      📶 Wifi:{" "}
-                      {prop.wifi || "N/A"}
-                    </p>
-                  </div>
-                )}
-
-                {/* ================= OFFICE ================= */}
-                {propertyType === "office" && (
-                  <div className="bg-gray-100 p-2 rounded-lg space-y-1">
-                    <p className="font-semibold text-gray-700">
-                      🏢 Office Details
-                    </p>
-
-                    <p className="text-sm">
-                      🏬 Floor:{" "}
-                      {prop.floorNumber || "N/A"}
-                    </p>
-
-                    <p className="text-sm">
-                      👥 Meeting Room:{" "}
-                      {prop.meetingRoom || "N/A"}
-                    </p>
-                  </div>
-                )}
-
-                <hr />
-
-                {/* OWNER DETAILS */}
+                {/* OWNER */}
                 <div className="space-y-1">
                   <p className="text-sm font-semibold">
                     👤 {prop.owner?.fullName}
