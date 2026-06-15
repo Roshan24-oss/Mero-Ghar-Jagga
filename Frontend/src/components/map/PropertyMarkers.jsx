@@ -7,6 +7,10 @@ import { FaWhatsapp, FaHeart } from "react-icons/fa";
 import axiosInstance from "../../api/axiosInstance"; // ✅ NEW ADD
 import { profileIcon, getCenter } from "./mapUtils";
 import { format } from "date-fns";
+import { FaRegComment } from "react-icons/fa";
+import {useState} from "react";
+
+
 
 const PropertyMarkers = ({
   properties,
@@ -16,6 +20,10 @@ const PropertyMarkers = ({
   refreshProperties, // ✅ NEW ADD
 }) => {
   const navigate = useNavigate();
+
+  const[selectedProperty, setSelectedProperty] = useState(null);
+const[commentText, setCommentText] = useState("");
+const[showCommentModal, setShowCommentModal] = useState(false);
 
   // ================= VIEW PROPERTY (NEW ADD) =================
   const handleView = async (propertyId) => {
@@ -56,6 +64,13 @@ const handleLike = async (propertyId) => {
     console.log(err);
   }
 };
+//================== COMMENT PROPERTY (NEW ADD) =================
+const handleComment = (property)=>{
+   console.log("comment clicked");
+  setSelectedProperty(property);
+  setShowCommentModal(true);
+}
+
   // ================= FAVORITE PROPERTY (NEW ADD) =================
  
 const handleFavorite = async (propertyId) => {
@@ -165,7 +180,21 @@ const handleFavorite = async (propertyId) => {
                   >
                     🔖 Save
                   </button>
+
+                <button
+  onClick={(e) => {
+    e.stopPropagation();
+    handleComment(prop);
+  }}
+  className="bg-blue-500 text-white px-2 py-1 rounded text-xs cursor-pointer"
+>
+  <FaRegComment />
+</button>
+                 
                 </div>
+
+               
+
 
                 {/* DETAILS */}
                 <p className="text-sm">📍 {prop.address}</p>
@@ -222,6 +251,64 @@ const handleFavorite = async (propertyId) => {
           </Marker>
         );
       })}
+
+       {showCommentModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center "
+  
+  style={{ zIndex: 9999999}}>
+    <div className="bg-white p-4 rounded-lg w-[400px]">
+      <h2 className="text-lg font-bold mb-3">
+        Comments for {selectedProperty?.label}
+      </h2>
+
+      {/* Existing comments */}
+      <div className="max-h-[250px] overflow-y-auto border p-2 rounded">
+        {selectedProperty?.comments?.length > 0 ? (
+          selectedProperty.comments.map((comment, index) => (
+            <div
+              key={index}
+              className="border-b py-2"
+            >
+              <p className="font-semibold">
+                {comment.user?.fullName}
+              </p>
+
+              <p>{comment.text}</p>
+            </div>
+          ))
+        ) : (
+          <p>No comments yet</p>
+        )}
+      </div>
+
+      {/* Add Comment */}
+      <textarea
+        value={commentText}
+        onChange={(e) =>
+          setCommentText(e.target.value)
+        }
+        className="w-full border mt-3 p-2 rounded"
+        placeholder="Write a comment..."
+      />
+
+      <div className="flex justify-end gap-2 mt-3">
+        <button
+          onClick={() => setShowCommentModal(false)}
+          className="px-3 py-1 bg-gray-300 rounded"
+        >
+          Cancel
+        </button>
+
+        <button
+          className="px-3 py-1 bg-blue-500 text-white rounded"
+        >
+          Post
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </>
   );
 };
