@@ -1,96 +1,105 @@
-// PropertyMarkers.jsx
-
 import { Marker, Popup } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
 import { FaWhatsapp, FaHeart } from "react-icons/fa";
 
-import axiosInstance from "../../api/axiosInstance"; // ✅ NEW ADD
+import axiosInstance from "../../api/axiosInstance"; 
 import { profileIcon, getCenter } from "./mapUtils";
 import { format } from "date-fns";
 import { FaRegComment } from "react-icons/fa";
-import {useState} from "react";
+import { useState } from "react";
 
 
-
-const PropertyMarkers = ({
-  properties,
-  user,
-  savedProperties,
-  setSavedProperties,
-  refreshProperties, // ✅ NEW ADD
-}) => {
+const PropertyMarkers = ({properties, user,savedProperties,setSavedProperties,refreshProperties, }) => {
   const navigate = useNavigate();
 
-  const[selectedProperty, setSelectedProperty] = useState(null);
-const[commentText, setCommentText] = useState("");
-const[showCommentModal, setShowCommentModal] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [commentText, setCommentText] = useState("");
+  const [showCommentModal, setShowCommentModal] = useState(false);
 
-  // ================= VIEW PROPERTY (NEW ADD) =================
+  //VIEW PROPERTY (NEW ADD)
   const handleView = async (propertyId) => {
     try {
       const visitorId =
-        localStorage.getItem("visitorId") ||
-        crypto.randomUUID();
+        localStorage.getItem("visitorId") || crypto.randomUUID();
 
       localStorage.setItem("visitorId", visitorId);
 
-      await axiosInstance.post(
-        `/property/view/${propertyId}`,
-        {
-          visitorId,
-        }
-      );
+      await axiosInstance.post(`/property/view/${propertyId}`, {
+        visitorId,
+      });
     } catch (err) {
       console.log(err);
     }
   };
 
-  // ================= LIKE PROPERTY (NEW ADD) =================
+  //  LIKE PROPERTY 
 
-const handleLike = async (propertyId) => {
-  if (!user) {
-    navigate("/signin");
-    return;
-  }
+  const handleLike = async (propertyId) => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
+
+    try {
+      await axiosInstance.post(`/property/like/${propertyId}`);
+
+      refreshProperties();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+   // COMMENT PROPERTY  
+  const handleComment = (property) => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
+    console.log("comment clicked");
+    setSelectedProperty(property);
+    setShowCommentModal(true);
+  };
+  
+const submitComment = async () => {
+  if (!commentText.trim()) return;
 
   try {
-    await axiosInstance.post(
-      `/property/like/${propertyId}`
+    const res = await axiosInstance.post(
+      `/property/comment/${selectedProperty._id}`,
+      {
+        text: commentText,
+      }
     );
 
-    refreshProperties();
+    setSelectedProperty({
+      ...selectedProperty,
+      comments: res.data.comments,
+    });
 
+    setCommentText("");
   } catch (err) {
     console.log(err);
   }
 };
-//================== COMMENT PROPERTY (NEW ADD) =================
-const handleComment = (property)=>{
-   console.log("comment clicked");
-  setSelectedProperty(property);
-  setShowCommentModal(true);
-}
 
-  // ================= FAVORITE PROPERTY (NEW ADD) =================
- 
-const handleFavorite = async (propertyId) => {
-  if (!user) {
-    navigate("/signin");
-    return;
-  }
+  //  FAVORITE PROPERTY 
 
-  try {
-    await axiosInstance.post(
-      `/property/favorite/${propertyId}`
-    );
+  const handleFavorite = async (propertyId) => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
 
-    refreshProperties();
+    try {
+      await axiosInstance.post(`/property/favorite/${propertyId}`);
 
-  } catch (err) {
-    console.log(err);
-  }
-};
-  // ================= SAVE PROPERTY (YOUR EXISTING CODE) =================
+      refreshProperties();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  //  SAVE PROPERTY 
   const handleSaveProperty = (property) => {
     if (!user) {
       navigate("/signin");
@@ -98,7 +107,7 @@ const handleFavorite = async (propertyId) => {
     }
 
     const alreadySaved = savedProperties.find(
-      (item) => item._id === property._id
+      (item) => item._id === property._id,
     );
 
     if (alreadySaved) {
@@ -111,11 +120,11 @@ const handleFavorite = async (propertyId) => {
     alert("Property saved ❤️");
   };
 
+  // UI
   return (
     <>
       {properties.map((prop) => {
-        const propertyType =
-          prop.propertyType?.toLowerCase()?.trim();
+        const propertyType = prop.propertyType?.toLowerCase()?.trim();
 
         const center = getCenter(prop.geometry);
 
@@ -128,14 +137,12 @@ const handleFavorite = async (propertyId) => {
             icon={profileIcon(prop.owner?.fullName)}
             eventHandlers={{
               click: () => {
-                handleView(prop._id); // 🔥 NEW ADD (VIEW TRACKING)
-
+                handleView(prop._id); //  (VIEW TRACKING)
               },
             }}
           >
             <Popup>
               <div className="w-[250px] space-y-2">
-
                 {/* TITLE */}
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-bold text-blue-600">
@@ -181,48 +188,37 @@ const handleFavorite = async (propertyId) => {
                     🔖 Save
                   </button>
 
-                <button
-  onClick={(e) => {
-    e.stopPropagation();
-    handleComment(prop);
-  }}
-  className="bg-blue-500 text-white px-2 py-1 rounded text-xs cursor-pointer"
->
-  <FaRegComment />
-</button>
-                 
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleComment(prop);
+                    }}
+                    className="bg-blue-500 text-white px-2 py-1 rounded text-xs cursor-pointer"
+                  >
+                    <FaRegComment />
+                  </button>
                 </div>
-
-               
-
 
                 {/* DETAILS */}
                 <p className="text-sm">📍 {prop.address}</p>
                 <p className="text-sm">💰 Rs {prop.price}</p>
 
                 <div className="flex gap-3 text-sm">
-  <span>👁 {prop.views || 0}</span>
+                  <span>👁 {prop.views || 0}</span>
 
-  <span>❤️ {prop.likesCount || 0}</span>
+                  <span>❤️ {prop.likesCount || 0}</span>
 
-  <span>🔖 {prop.favoritesCount || 0}</span>
-</div>
+                  <span>🔖 {prop.favoritesCount || 0}</span>
+                </div>
 
-                {prop.area && (
-                  <p className="text-sm">📏 {prop.area}</p>
-                )}
+                {prop.area && <p className="text-sm">📏 {prop.area}</p>}
 
-                <p className="text-sm">
-                  ⏳ {prop.availableDays} days
-                </p>
+                <p className="text-sm">⏳ {prop.availableDays} days</p>
 
-                <p className="text-xs text-gray-600">
-                  {prop.description}
-                </p>
+                <p className="text-xs text-gray-600">{prop.description}</p>
 
                 <p className="text-xs text-gray-500">
-                  Registered:{" "}
-                  {format(new Date(prop.createdAt), "PPP p")}
+                  Registered: {format(new Date(prop.createdAt), "PPP p")}
                 </p>
 
                 {/* OWNER */}
@@ -231,9 +227,7 @@ const handleFavorite = async (propertyId) => {
                     👤 {prop.owner?.fullName}
                   </p>
 
-                  <p className="text-sm">
-                    📞 {prop.owner?.phone}
-                  </p>
+                  <p className="text-sm">📞 {prop.owner?.phone}</p>
                 </div>
 
                 {/* WHATSAPP */}
@@ -252,63 +246,57 @@ const handleFavorite = async (propertyId) => {
         );
       })}
 
-       {showCommentModal && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center "
-  
-  style={{ zIndex: 9999999}}>
-    <div className="bg-white p-4 rounded-lg w-[400px]">
-      <h2 className="text-lg font-bold mb-3">
-        Comments for {selectedProperty?.label}
-      </h2>
+      {showCommentModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center "
+          style={{ zIndex: 9999999 }}
+        >
+          <div className="bg-white p-4 rounded-lg w-[400px]">
+            <h2 className="text-lg font-bold mb-3">
+              Comments for {selectedProperty?.label}
+            </h2>
 
-      {/* Existing comments */}
-      <div className="max-h-[250px] overflow-y-auto border p-2 rounded">
-        {selectedProperty?.comments?.length > 0 ? (
-          selectedProperty.comments.map((comment, index) => (
-            <div
-              key={index}
-              className="border-b py-2"
-            >
-              <p className="font-semibold">
-                {comment.user?.fullName}
-              </p>
+            {/* Existing comments */}
+            <div className="max-h-[250px] overflow-y-auto border p-2 rounded">
+              {selectedProperty?.comments?.length > 0 ? (
+                selectedProperty.comments.map((comment, index) => (
+                  <div key={index} className="border-b py-2">
+                    <p className="font-semibold">{comment.user?.fullName}</p>
 
-              <p>{comment.text}</p>
+                    <p>{comment.text}</p>
+                  </div>
+                ))
+              ) : (
+                <p>No comments yet</p>
+              )}
             </div>
-          ))
-        ) : (
-          <p>No comments yet</p>
-        )}
-      </div>
 
-      {/* Add Comment */}
-      <textarea
-        value={commentText}
-        onChange={(e) =>
-          setCommentText(e.target.value)
-        }
-        className="w-full border mt-3 p-2 rounded"
-        placeholder="Write a comment..."
-      />
+            {/* Add Comment */}
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              className="w-full border mt-3 p-2 rounded"
+              placeholder="Write a comment..."
+            />
 
-      <div className="flex justify-end gap-2 mt-3">
-        <button
-          onClick={() => setShowCommentModal(false)}
-          className="px-3 py-1 bg-gray-300 rounded"
-        >
-          Cancel
-        </button>
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                onClick={() => setShowCommentModal(false)}
+                className="px-3 py-1 bg-gray-300 rounded"
+              >
+                Cancel
+              </button>
 
-        <button
-          className="px-3 py-1 bg-blue-500 text-white rounded"
-        >
-          Post
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+              <button
+                onClick={submitComment}
+                className="px-3 py-1 bg-blue-500 text-white rounded"
+              >
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -3,6 +3,7 @@ import PropertyLike from "../models/PropertyLike.js";
 import PropertyFavorite from "../models/PropertyFavoorite.js";
 import PropertyView from "../models/PropertyView.js";
 
+
 export const addProperty = async (req, res) => {
   try {
     const {
@@ -111,12 +112,13 @@ export const getProperties = async (req, res) => {
       }).populate(
         "owner",
         "fullName phone"
-      );
+      ).populate("comments.user", "fullName");
+      
     } else {
       properties = await Property.find().populate(
         "owner",
         "fullName phone"
-      );
+      ).populate("comments.user", "fullName");
     }
 
     res.json(properties);
@@ -296,6 +298,38 @@ export const toggleFavorite = async (
 
     res.status(500).json({
       message: "Favorite error",
+    });
+  }
+};
+
+export const addComment = async (req, res) => {
+  try {
+    const { propertyId } = req.params;
+    const { text } = req.body;
+
+    const property = await Property.findById(propertyId);
+
+    if (!property) {
+      return res.status(404).json({
+        message: "Property not found",
+      });
+    }
+
+    property.comments.push({
+      user: req.user._id,
+      text,
+    });
+    await property.save();
+
+    await property.populate("comments.user", "fullName");
+    res.status(200).json({
+      success: true,
+      comments: property.comments,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Comment error",
     });
   }
 };
