@@ -2,9 +2,11 @@ import React, { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext.jsx";
 import axiosInstance from "../api/axiosInstance.js";
+import { FaEyeSlash } from "react-icons/fa";
+import { FaEye } from "react-icons/fa";
 
 const SignUp = () => {
-
+const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
@@ -150,14 +152,24 @@ const SignUp = () => {
         />
 
         {/* PASSWORD */}
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={password}
-          onChange={handleChange}
-          className="w-full mb-3 p-3 border rounded"
-        />
+        <div className="relative">
+          <input
+            type={showPassword?"text":"password"}
+            name="password"
+            placeholder="Password"
+            value={password}
+            onChange={handleChange}
+            className="w-full mb-3 p-3 border rounded"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute top-1/2 right-3 transform -translate-y-1/2 flex items-center text-gray-500 hover:text-gray-700"
+          >
+            {showPassword ? <FaEyeSlash /> : <FaEye />}
+          </button>
+        </div>
+        <div/>
 
         {/* PHONE (YOUR ORIGINAL) */}
         <input
