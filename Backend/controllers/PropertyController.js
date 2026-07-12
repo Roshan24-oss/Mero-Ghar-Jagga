@@ -111,14 +111,14 @@ export const getProperties = async (req, res) => {
         owner: req.user._id,
       }).populate(
         "owner",
-        "fullName phone"
-      ).populate("comments.user", "fullName");
+        "_id fullName phone"
+      ).populate("comments.user","_id fullName");
       
     } else {
       properties = await Property.find().populate(
         "owner",
-        "fullName phone"
-      ).populate("comments.user", "fullName");
+        "_id fullName phone"
+      ).populate("comments.user", "_id fullName");
     }
 
     res.json(properties);
@@ -330,6 +330,42 @@ export const addComment = async (req, res) => {
     console.log(err);
     res.status(500).json({
       message: "Comment error",
+    });
+  }
+};
+
+export const deleteProperty = async (req, res) => {
+  try {
+    const { propertyId } = req.params;
+
+    const property = await Property.findById(propertyId);
+console.log("Property owner:", property.owner.toString());
+console.log("Logged in user:", req.user._id.toString());
+
+    if (!property) {
+      return res.status(404).json({
+        message: "Property not found",
+      });
+    }
+
+    // Only the owner can delete
+    if (property.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "You are not authorized to delete this property",
+      });
+    }
+
+    await property.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Property deleted successfully",
+    });
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      message: "Delete error",
     });
   }
 };

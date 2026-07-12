@@ -7,7 +7,7 @@ import { profileIcon, getCenter } from "./mapUtils";
 import { format } from "date-fns";
 import { FaRegComment } from "react-icons/fa";
 import { useState } from "react";
-
+import { MdDelete } from "react-icons/md";
 
 const PropertyMarkers = ({properties, user,savedProperties,setSavedProperties,refreshProperties, }) => {
   const navigate = useNavigate();
@@ -31,6 +31,23 @@ const PropertyMarkers = ({properties, user,savedProperties,setSavedProperties,re
       console.log(err);
     }
   };
+
+  // delete property
+  const handleDelete = async (propertyId)=>{
+    try{
+      const confirmDelete = window.confirm("Are you sure you want to delete this property?");
+
+      if(!confirmDelete) return;
+      
+
+      await axiosInstance.delete(`/property/${propertyId}`);
+      alert("Property deleted successfully");
+      refreshProperties();
+    }catch(err){
+      console.log(err);
+      alert("Error deleting property");
+    }
+  }
 
   //  LIKE PROPERTY 
 
@@ -241,6 +258,18 @@ const submitComment = async () => {
                   Chat on WhatsApp
                 </a>
               </div>
+
+   
+
+   {user?._id === prop.owner?._id && (
+  <button
+    onClick={() => handleDelete(prop._id)}
+    className="text-black bg-red-500 px-2 py-1 rounded text-xs mt-2 hover:bg-red-600 transition"
+  >
+    Delete
+  </button>
+)}
+
             </Popup>
           </Marker>
         );
