@@ -15,9 +15,6 @@ const PropertyMarkers = ({ properties, user, savedProperties, setSavedProperties
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [unlockedIds, setUnlockedIds] = useState(new Set());
 
-  const [showEditModal, setShowEditModal]=useState(false);
-  const [editData, setEditData]=useState(null);
-
   // Check whether the current user has paid to see this property's contact info
   const handleUnlockOrView = async (property) => {
     if (!user) {
@@ -65,46 +62,6 @@ const PropertyMarkers = ({ properties, user, savedProperties, setSavedProperties
     }
   };
 
-
-  //Edit Porperty
-
-  const handleEdit= (property)=>{
-    setEditData(property);
-    setShowEditModal(true);
-  }
-
-const handleEditChange = (e) => {
-  const { name, value } = e.target;
-
-  setEditData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-};
-
-const updateProperty = async () => {
-  try {
-    await axiosInstance.put(
-      `/property/${editData._id}`,
-      editData
-    );
-
-    alert("Property updated successfully ✅");
-
-    // Close the modal
-    setShowEditModal(false);
-
-    // Clear previous property data
-    setEditData(null);
-
-    // Reload properties from backend
-    refreshProperties();
-
-  } catch (err) {
-    console.log(err);
-    alert("Failed to update property");
-  }
-};
   // LIKE PROPERTY
   const handleLike = async (propertyId) => {
     if (!user) {
@@ -290,27 +247,14 @@ const updateProperty = async () => {
                   )}
                 </div>
 
-
-              
-
-{user?._id === prop.owner?._id && (
-<>
-<button
-onClick={() => handleEdit(prop)}
-className="bg-blue-500 text-white px-2 py-1 rounded"
->
-Edit
-</button>
-
-<button
-onClick={() => handleDelete(prop._id)}
-className="bg-red-500 text-white px-2 py-1 ml-2 rounded"
->
-Delete
-</button>
-</>
-)}
-
+                {user?._id === prop.owner?._id && (
+                  <button
+                    onClick={() => handleDelete(prop._id)}
+                    className="text-black bg-red-500 px-2 py-1 rounded text-xs mt-2 hover:bg-red-600 transition"
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>
@@ -353,223 +297,9 @@ Delete
                 Post
               </button>
             </div>
-
-
           </div>
         </div>
       )}
-
-
-      {showEditModal && editData && (
-  <div
-    className="fixed inset-0 bg-black/50 flex items-center justify-center"
-    style={{ zIndex: 999999 }}
-  >
-    <div className="bg-white p-6 rounded-lg w-[500px] max-h-[90vh] overflow-y-auto">
-
-      <h2 className="text-2xl font-bold mb-4 text-center">
-        Edit Property
-      </h2>
-
-      {/* Property Title */}
-      <input
-        type="text"
-        name="label"
-        value={editData.label || ""}
-        onChange={handleEditChange}
-        placeholder="Property Title"
-        className="w-full border p-2 rounded mb-3"
-      />
-
-      {/* Address */}
-      <input
-        type="text"
-        name="address"
-        value={editData.address || ""}
-        onChange={handleEditChange}
-        placeholder="Address"
-        className="w-full border p-2 rounded mb-3"
-      />
-
-      {/* Price */}
-      <input
-        type="number"
-        name="price"
-        value={editData.price || ""}
-        onChange={handleEditChange}
-        placeholder="Price"
-        className="w-full border p-2 rounded mb-3"
-      />
-
-      {/* Area */}
-      <input
-        type="text"
-        name="area"
-        value={editData.area || ""}
-        onChange={handleEditChange}
-        placeholder="Area"
-        className="w-full border p-2 rounded mb-3"
-      />
-
-      {/* Available Days */}
-      <input
-        type="number"
-        name="availableDays"
-        value={editData.availableDays || ""}
-        onChange={handleEditChange}
-        placeholder="Available Days"
-        className="w-full border p-2 rounded mb-3"
-      />
-
-      {/* Description */}
-      <textarea
-        name="description"
-        value={editData.description || ""}
-        onChange={handleEditChange}
-        placeholder="Description"
-        className="w-full border p-2 rounded mb-3"
-      />
-
-      {/* Property Type */}
-      <select
-        name="propertyType"
-        value={editData.propertyType || ""}
-        onChange={handleEditChange}
-        className="w-full border p-2 rounded mb-3"
-      >
-        <option value="land">Land</option>
-        <option value="home">Home</option>
-        <option value="room">Room</option>
-        <option value="office">Office</option>
-      </select>
-
-      {/* ---------- LAND ---------- */}
-
-      {editData.propertyType === "land" && (
-        <>
-          <input
-            type="text"
-            name="roadAccess"
-            value={editData.roadAccess || ""}
-            onChange={handleEditChange}
-            placeholder="Road Access"
-            className="w-full border p-2 rounded mb-3"
-          />
-        </>
-      )}
-
-      {/* ---------- HOME ---------- */}
-
-      {editData.propertyType === "home" && (
-        <>
-          <input
-            type="text"
-            name="bhk"
-            value={editData.bhk || ""}
-            onChange={handleEditChange}
-            placeholder="BHK"
-            className="w-full border p-2 rounded mb-3"
-          />
-
-          <select
-            name="furnished"
-            value={editData.furnished || ""}
-            onChange={handleEditChange}
-            className="w-full border p-2 rounded mb-3"
-          >
-            <option value="">Furnished?</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-
-          <select
-            name="parking"
-            value={editData.parking || ""}
-            onChange={handleEditChange}
-            className="w-full border p-2 rounded mb-3"
-          >
-            <option value="">Parking?</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </>
-      )}
-
-      {/* ---------- ROOM ---------- */}
-
-      {editData.propertyType === "room" && (
-        <>
-          <input
-            type="text"
-            name="roomType"
-            value={editData.roomType || ""}
-            onChange={handleEditChange}
-            placeholder="Room Type"
-            className="w-full border p-2 rounded mb-3"
-          />
-
-          <select
-            name="wifi"
-            value={editData.wifi || ""}
-            onChange={handleEditChange}
-            className="w-full border p-2 rounded mb-3"
-          >
-            <option value="">Wifi?</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </>
-      )}
-
-      {/* ---------- OFFICE ---------- */}
-
-      {editData.propertyType === "office" && (
-        <>
-          <input
-            type="text"
-            name="floorNumber"
-            value={editData.floorNumber || ""}
-            onChange={handleEditChange}
-            placeholder="Floor Number"
-            className="w-full border p-2 rounded mb-3"
-          />
-
-          <select
-            name="meetingRoom"
-            value={editData.meetingRoom || ""}
-            onChange={handleEditChange}
-            className="w-full border p-2 rounded mb-3"
-          >
-            <option value="">Meeting Room?</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </>
-      )}
-
-      {/* Buttons */}
-
-      <div className="flex justify-end gap-3 mt-5">
-
-        <button
-          onClick={() => setShowEditModal(false)}
-          className="bg-gray-400 text-white px-4 py-2 rounded"
-        >
-          Cancel
-        </button>
-
-        <button
-          onClick={updateProperty}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Update Property
-        </button>
-
-      </div>
-
-    </div>
-  </div>
-)}
     </>
   );
 };

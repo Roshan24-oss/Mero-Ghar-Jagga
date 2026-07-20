@@ -1,5 +1,5 @@
 import express from "express";
-import { addProperty, getProperties, addView, toggleLike, toggleFavorite , addComment, deleteProperty} from "../controllers/propertyController.js";
+import { addProperty, getProperties, addView, toggleLike, toggleFavorite , addComment, deleteProperty, updateProperty} from "../controllers/propertyController.js";
 import authMiddleware from "../middleware/authMiddlewares.js";
 import upload from "../middleware/upload.js";
 
@@ -17,4 +17,5 @@ router.post("/like/:propertyId", authMiddleware, toggleLike);
 router.post("/favorite/:propertyId", authMiddleware, toggleFavorite);
 router.post("/comment/:propertyId", authMiddleware, addComment);
 
+router.put("/:propertyId", authMiddleware, updateProperty);
 export default router;

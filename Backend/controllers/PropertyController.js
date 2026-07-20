@@ -369,3 +369,80 @@ console.log("Logged in user:", req.user._id.toString());
     });
   }
 };
+
+export const updateProperty = async (req, res) => {
+  try {
+
+    const { propertyId } = req.params;
+
+    const property = await Property.findById(propertyId);
+
+    if (!property) {
+      return res.status(404).json({
+        message: "Property not found",
+      });
+    }
+
+    // Only owner can edit
+    if (property.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "You are not authorized to edit this property",
+      });
+    }
+
+    const {
+      label,
+      propertyType,
+      price,
+      area,
+      address,
+      availableDays,
+      description,
+      bhk,
+      furnished,
+      parking,
+      roadAccess,
+      roomType,
+      wifi,
+      floorNumber,
+      meetingRoom,
+    } = req.body;
+
+    property.label = label;
+    property.propertyType = propertyType;
+    property.price = price;
+    property.area = area;
+    property.address = address;
+    property.availableDays = availableDays;
+    property.description = description;
+
+    property.bhk = bhk;
+    property.furnished = furnished;
+    property.parking = parking;
+
+    property.roadAccess = roadAccess;
+
+    property.roomType = roomType;
+    property.wifi = wifi;
+
+    property.floorNumber = floorNumber;
+    property.meetingRoom = meetingRoom;
+
+    await property.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Property updated successfully",
+      property,
+    });
+
+  } catch (err) {
+
+    console.log(err);
+
+    res.status(500).json({
+      message: "Update error",
+    });
+
+  }
+};
