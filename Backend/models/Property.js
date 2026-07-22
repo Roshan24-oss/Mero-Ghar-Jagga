@@ -139,7 +139,19 @@ images: [String],
         type:Date,
         default:Date.now,
       }
-    }]
+    }],
+
+    status:{
+      type:"String",
+      enum:["available", "negotiation", "sold"],
+      default:"available"
+    },
+    soldAt:{
+      type:Date,
+      default:null
+
+    }
+
   },
   { timestamps: true }
 );

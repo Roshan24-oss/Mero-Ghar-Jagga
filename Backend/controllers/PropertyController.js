@@ -4,6 +4,7 @@ import PropertyFavorite from "../models/PropertyFavoorite.js";
 import PropertyView from "../models/PropertyView.js";
 
 
+
 export const addProperty = async (req, res) => {
   try {
     const {
@@ -115,10 +116,24 @@ export const getProperties = async (req, res) => {
       ).populate("comments.user","_id fullName");
       
     } else {
-      properties = await Property.find().populate(
-        "owner",
-        "_id fullName phone"
-      ).populate("comments.user", "_id fullName");
+      
+const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      properties = await Property.find({
+        $or: [
+          {
+            status: { $ne: "sold" }, // available & negotiation
+          },
+          {
+            status: "sold",
+            soldAt: { $gt: yesterday }, // sold within last 24 hours
+          },
+        ],
+      })
+        .populate("owner", "_id fullName phone")
+        .populate("comments.user", "_id fullName");
+      
+
     }
 
     res.json(properties);
@@ -446,3 +461,48 @@ export const updateProperty = async (req, res) => {
 
   }
 };
+
+//porperty status update ko code
+
+ 
+
+export const updatePropertyStatus= async (req,res)=>{
+  try {
+    const {propertyId}= req.params;
+    const {status}=req.body;
+
+    const property = await Property.findById(propertyId);
+
+    if(!property){
+      return res.status(404).json({
+        success:false,
+        message:"Property not found"
+      })
+    }
+
+    if(property.owner.toString()!==req.user._id.toString()){
+      return res.status(403).json({
+        success:false,
+        message:"Unauthorize"
+      })
+    }
+
+    property.status=status;
+
+   if(status==="sold"){
+    property.soldAt= new Date();
+   }else{
+    property.soldAt= null;
+   }
+
+    await property.save()
+
+    res.json({
+      success:true,
+      property
+    })
+
+  } catch (error) {
+    
+  }
+}
