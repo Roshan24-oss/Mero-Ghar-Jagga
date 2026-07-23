@@ -162,6 +162,17 @@ const updateProperty = async () => {
     }
   };
 
+// available,sold status change garne functiono
+  const changeStatus = async(propertyId,status)=>{
+    try {
+      await axiosInstance.put(`/property/status/${propertyId}`,{status});
+
+      refreshProperties();
+    } catch (error) {
+      console.log(error);
+      alert("Failed to update property status.");
+    }
+  }
   // SAVE PROPERTY
   const handleSaveProperty = (property) => {
     if (!user) {
@@ -178,6 +189,8 @@ const updateProperty = async () => {
     setSavedProperties([...savedProperties, property]);
     alert("Property saved ❤️");
   };
+
+  
 
   return (
     <>
@@ -203,6 +216,13 @@ const updateProperty = async () => {
                   <h2 className="text-lg font-bold text-blue-600">{prop.label}</h2>
                   <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full capitalize">
                     {prop.propertyType}
+                  </span>
+
+                  <span className={`text-xs px-2 rounded text-white
+                    ${
+                      prop.status === "available"? "bg-green-500": prop.status === "negotiation"? "bg-yellow-500": "bg-red-500"
+                    }`}>
+{prop.status}
                   </span>
                 </div>
 
@@ -266,50 +286,74 @@ const updateProperty = async () => {
 
                 <div className="space-y-1">
                   <p className="text-sm font-semibold">👤 {prop.owner?.fullName}</p>
+{unlockedIds.has(prop._id) ? (
+  <>
+    <p className="text-sm">📞 {prop.owner?.phone}</p>
 
-                  {unlockedIds.has(prop._id) ? (
-                    <>
-                      <p className="text-sm">📞 {prop.owner?.phone}</p>
-                      <a
-                        href={`https://wa.me/${prop.owner?.phone}?text=Hello, I'm interested in your property "${prop.label}". Is it still available?`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-green-500 hover:text-green-600 font-bold"
-                      >
-                        <FaWhatsapp />
-                        Chat on WhatsApp
-                      </a>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => navigate(`/payment/${prop._id}`)}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-xs"
-                    >
-                      🔒 Pay to Unlock Contact
-                    </button>
-                  )}
+    <a
+      href={`https://wa.me/${prop.owner?.phone}?text=Hello, I'm interested in your property "${prop.label}". Is it still available?`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 text-green-500 hover:text-green-600 font-bold"
+    >
+      <FaWhatsapp />
+      Chat on WhatsApp
+    </a>
+  </>
+) : prop.status === "sold" ? (
+  <p className="text-red-600 font-bold">
+    This property has been sold.
+  </p>
+) : (
+  <button
+    onClick={() => navigate(`/payment/${prop._id}`)}
+    className="bg-green-600 text-white px-3 py-1 rounded text-xs"
+  >
+    🔒 Pay to Unlock Contact
+  </button>
+)}
+                    
+                  
                 </div>
 
+{user?._id === prop.owner?._id &&(
+  <>
+  
+  <div className="mb-2">
+
+    <label className="text-sm font-semibold">  Property Status</label>
+
+    <select
+     value={prop.status}
+     onChange={(e)=> changeStatus(prop._id, e.target.value)}
+     className="w-full border rounded p-1 mt-1"
+    
+    >
+      <option value="available"> Available</option>
+      <option value="negotiation">Negotiation</option>
+      <option value="sold"> Sold</option>
+
+    </select>
+
+  </div>
+  
+  <button onClick={()=> handleEdit(prop)}
+    className="bg-blue-500 text-white px-2 py-1 rounded">
+    Edit
+  </button>
+
+  <button
+  onClick={()=>handleDelete(prop._id)}
+  className="bg-red-500 text-white px-2 ml-2 rounded">
+    
+    Delete
+  </button>
+  </>
+
+)}
 
               
 
-{user?._id === prop.owner?._id && (
-<>
-<button
-onClick={() => handleEdit(prop)}
-className="bg-blue-500 text-white px-2 py-1 rounded"
->
-Edit
-</button>
-
-<button
-onClick={() => handleDelete(prop._id)}
-className="bg-red-500 text-white px-2 py-1 ml-2 rounded"
->
-Delete
-</button>
-</>
-)}
 
               </div>
             </Popup>
