@@ -1,32 +1,35 @@
-import multer from "multer";
-import path from "path";
-
-// Storage 
-
-const storage= multer.diskStorage({
-    destination:(req,file,cb)=>{
-        cb(null,"uploads/");
-    },
+import  multer from 'multer';
+ const storage = multer.memoryStorage();
 
 
-    filename:(req,file,cb)=>{
-        cb(null, Date.now()+path.extname(file.originalname));
-    },
-});
+ const filter = (req,file,cb)=>{
 
-const fileFilter=(req,file,cb)=>{
-    const allowed=["image/jpeg","image/jpg","image/png","image/webp"];
+    const allowed =[
+
+         "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+
+        "video/mp4",
+        "video/webm",
+        "video/quicktime"
+    ];
 
     if(allowed.includes(file.mimetype)){
-        cb(null,true);
+        cb(null, true);
     }else{
-        cb(new Error("Invalid file type"),false);
+        cb(new Error("invalid file type"),false);
     }
-}
+
+ };
+
  const upload = multer({
     storage,
-    fileFilter,
- });
+    limits:{
+        fileSize:30*1024*1024
+    },
+    fileFilter
+ })
 
- 
  export default upload;

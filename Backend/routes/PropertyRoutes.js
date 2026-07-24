@@ -6,7 +6,12 @@ import upload from "../middleware/upload.js";
 const router = express.Router();
 
 // only owner can add
-router.post("/", authMiddleware, upload.array("images", 5), addProperty);
+router.post("/", authMiddleware, upload.fields([
+    {name:"image", maxCount:5},
+    {name:"video", maxCount:1}
+]))
+
+
 router.delete("/:propertyId", authMiddleware, deleteProperty);
 
 // everyone can view

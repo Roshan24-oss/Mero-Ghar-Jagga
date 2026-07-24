@@ -109,6 +109,11 @@ const propertySchema = new mongoose.Schema(
       },
     },
 images: [String],
+
+video:{
+  type:String,
+  default:""
+},
     // ================= OWNER =================
 
     owner: {

@@ -2,7 +2,29 @@ import Property from "../models/Property.js";
 import PropertyLike from "../models/PropertyLike.js";
 import PropertyFavorite from "../models/PropertyFavoorite.js";
 import PropertyView from "../models/PropertyView.js";
+import cloudinary from "../config/cloudinary.js";
+import streamifier from "streamifier";
 
+
+//helper function for uploading image and video to cloudinary
+
+const uploadToCloudinary = (fileBuffer, folder, resourceType="image")=>{
+  return new Promise((resolve,reject)=>{
+    const stream = cloudinary.uploader.upload_stream(
+
+      {
+        folder,
+        resource_type:resourceType,
+      },
+      (error,result)=>{
+        if(error) return reject(error);
+        resolve(result);
+      }
+    )
+
+    streamifier.createReadStream(fileBuffer).pipe(stream);
+  })
+};
 
 
 export const addProperty = async (req, res) => {
@@ -52,9 +74,36 @@ export const addProperty = async (req, res) => {
     }
 
     // ✅ IMAGE PATHS
-    const imagePaths = req.files?.map(
-      (file) => `/uploads/${file.filename}`
-    ) || [];
+  const imagePaths=[];
+
+  if(req.files?.images){
+    for(const file of req.files.image){
+      const result = await uploadToCloudinary(
+        file.buffer,
+        "properties/images",
+        "image"
+      );
+
+      imagePaths.push({
+        url:result.secure_url,
+        publicId:result.publicId,
+      })
+    }
+  }
+
+  let video = null;
+  if(req.files?.video.length>0){
+    const result = await uploadToCloudinary(
+      req.files.video[0].buffer,
+      "properties/videos",
+      "video"
+    );
+    video={
+      url:result.secure_url,
+      publicId:result.public_id,
+    }
+  }
+
 
     // ✅ CREATE PROPERTY
     const property = await Property.create({
@@ -87,6 +136,7 @@ export const addProperty = async (req, res) => {
 
       // IMAGES
       images: imagePaths,
+      video:video,
 
       owner: req.user._id,
     });
