@@ -17,6 +17,7 @@ const GeomanControl = ({ refreshProperties }) => {
 
   // ✅ IMAGES STATE
   const [images, setImages] = useState([]);
+  const [video, setVideo]=useState(null);
 
   const [formData, setFormData] = useState({
     propertyType: "",
@@ -131,6 +132,10 @@ const GeomanControl = ({ refreshProperties }) => {
       images.forEach((img) => {
         data.append("images", img);
       });
+
+      if(video){
+        data.append("video",video)
+      }
 
       // ✅ API CALL
       await axiosInstance.post("/property", data, {
@@ -285,6 +290,14 @@ const GeomanControl = ({ refreshProperties }) => {
               <p className="text-xs text-gray-500 mt-1">
                 You can upload up to 5 images
               </p>
+
+              <label className="block mb-1 font-semibold">Property Videos</label>
+
+              <input 
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime"
+              onChange={(e)=>setVideo(e.target.files[0])}
+              />
             </div>
 
             {/* ================= LAND ================= */}

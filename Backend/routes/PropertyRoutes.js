@@ -7,9 +7,11 @@ const router = express.Router();
 
 // only owner can add
 router.post("/", authMiddleware, upload.fields([
-    {name:"image", maxCount:5},
+    {name:"images", maxCount:5},
     {name:"video", maxCount:1}
-]))
+]),
+addProperty
+)
 
 
 router.delete("/:propertyId", authMiddleware, deleteProperty);

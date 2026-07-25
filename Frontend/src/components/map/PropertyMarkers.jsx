@@ -211,7 +211,7 @@ const updateProperty = async () => {
             }}
           >
             <Popup>
-              <div className="w-[250px] space-y-2">
+              <div className="w-[320px] max-h-[500px] overflow-y-auto space-y-2">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-bold text-blue-600">{prop.label}</h2>
                   <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full capitalize">
@@ -226,13 +226,25 @@ const updateProperty = async () => {
                   </span>
                 </div>
 
-                {prop.images?.length > 0 && (
-                  <img
-                    src={`http://localhost:8000${prop.images[0]}`}
-                    alt="property"
-                    className="w-full h-[140px] object-cover rounded-lg"
-                  />
-                )}
+                
+<div className="flex gap-2">
+  {prop.images?.length > 0 && (
+    <img
+      src={prop.images[0].url}
+      alt="property"
+      className={`${prop.video?.url ? "w-1/2" : "w-full"} h-32 object-cover rounded-lg`}
+    />
+  )}
+
+  {prop.video?.url && (
+    <video
+      controls
+      className={`${prop.images?.length > 0 ? "w-1/2" : "w-full"} h-32 object-cover rounded-lg`}
+    >
+      <source src={prop.video.url} type="video/mp4" />
+    </video>
+  )}
+</div>
 
                 <button
                   onClick={() => handleSaveProperty(prop)}

@@ -2,7 +2,7 @@ import  multer from 'multer';
  const storage = multer.memoryStorage();
 
 
- const filter = (req,file,cb)=>{
+ const fileFilter = (req,file,cb)=>{
 
     const allowed =[
 
