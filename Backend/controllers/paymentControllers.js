@@ -2,12 +2,13 @@ import CryptoJS from "crypto-js";
 import Payment from "../models/paymentModel.js";
 import Property from "../models/Property.js";
 
-const CONTACT_UNLOCK_FEE = Number(process.env.CONTACT_UNLOCK_FEE || 50);
+
 
 export const paymentSignature = async (req, res) => {
   try {
     const { propertyId } = req.body;
     const userId = req.user._id;
+    const {total_amount, transaction_uuid, product_code}= req.body;
 
     if (!propertyId) {
       return res.status(400).json({
@@ -39,12 +40,10 @@ export const paymentSignature = async (req, res) => {
       });
     }
 
-    const transaction_uuid = `${propertyId}-${Date.now()}`;
 
-    const product_code = process.env.ESEWA_PRODUCT_CODE;
+   
 
-    const total_amount = CONTACT_UNLOCK_FEE;
-
+   
     const hashString = `total_amount=${total_amount},transaction_uuid=${transaction_uuid},product_code=${product_code}`;
 
     const hash = CryptoJS.HmacSHA256(
@@ -68,8 +67,7 @@ export const paymentSignature = async (req, res) => {
     signature,
     secret: process.env.ESEWA_SECRET
 });  
-console.log(process.env.ESEWA_PRODUCT_CODE);
-console.log(process.env.ESEWA_SECRET);
+
 
     return res.json({
       success: true,
@@ -88,9 +86,11 @@ console.log(process.env.ESEWA_SECRET);
   }
 };
 
+
+
 export const verifySignature = async (req, res) => {
   try {
-    const { transaction_uuid } = req.body;
+    const {total_amount, transaction_uuid, product_code}=req.body;
 
     const payment = await Payment.findOne({
       transactionId: transaction_uuid,
@@ -116,7 +116,9 @@ export const verifySignature = async (req, res) => {
     }
 
     const response = await fetch(
-      `https://rc.esewa.com.np/api/epay/transaction/status/?product_code=${process.env.ESEWA_PRODUCT_CODE}&total_amount=${payment.amount}&transaction_uuid=${transaction_uuid}`
+      `
+https://rc.esewa.com.np/api/epay/transaction/status/?product_code=${product_code}&total_amount=${total_amount}&transaction_uuid=${transaction_uuid}
+ `
     );
 
     const result = await response.json();
@@ -150,6 +152,9 @@ export const verifySignature = async (req, res) => {
     });
   }
 };
+
+
+
 
 export const checkAccess = async (req, res) => {
   try {
