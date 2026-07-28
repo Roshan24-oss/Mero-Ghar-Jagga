@@ -51,8 +51,7 @@ const Payment = () => {
 
       const form = document.createElement("form");
       form.method = "POST";
-      form.action =
-        "https://rc-epay.esewa.com.np/api/epay/main/v2/form";
+      form.action ="https://rc-epay.esewa.com.np/api/epay/main/v2/form"
 
       Object.entries(formData).forEach(([key, value]) => {
         const input = document.createElement("input");

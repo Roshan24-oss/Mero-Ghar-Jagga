@@ -116,9 +116,7 @@ export const verifySignature = async (req, res) => {
     }
 
     const response = await fetch(
-      `
-https://rc.esewa.com.np/api/epay/transaction/status/?product_code=${product_code}&total_amount=${total_amount}&transaction_uuid=${transaction_uuid}
- `
+      `https://rc.esewa.com.np/api/epay/transaction/status/?product_code=${product_code}&total_amount=${total_amount}&transaction_uuid=${transaction_uuid}`
     );
 
     const result = await response.json();
