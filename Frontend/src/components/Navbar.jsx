@@ -4,11 +4,12 @@ import { CiSearch } from "react-icons/ci";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { FaFilter } from "react-icons/fa";
+import { IoMdTrendingUp } from "react-icons/io";
 
 import {FaPlus, FaHeart} from "react-icons/fa";
 
 
-const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter }) => {
+const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter, selectedTrending, setSelectedTrending }) => {
   const inputRef = useRef();
   const navigate = useNavigate();
   const { user, logout, savedProperties } = useContext(AuthContext);
@@ -18,6 +19,7 @@ const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter }) => {
   const [searchText, setSearchText] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [lockSuggestions, setLockSuggestions] = useState(false);
+  const [isTrendingOpen, setIsTrendingOpen]=useState(false);
 
   const menuRef = useRef();
 
@@ -182,7 +184,7 @@ const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter }) => {
       <button
         onClick={() => {
           setSelectedFilter("all");
-          setIsFilterOpen(false);
+          setIsTrendingOpen(false);
         }}
         className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
       >
@@ -192,7 +194,7 @@ const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter }) => {
       <button
         onClick={() => {
           setSelectedFilter("home");
-          setIsFilterOpen(false);
+          setIsTrendingOpen(false);
         }}
         className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
       >
@@ -202,7 +204,7 @@ const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter }) => {
       <button
         onClick={() => {
           setSelectedFilter("land");
-          setIsFilterOpen(false);
+          setIsTrendingOpen(false);
         }}
         className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
       >
@@ -212,7 +214,7 @@ const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter }) => {
       <button
         onClick={() => {
           setSelectedFilter("room");
-          setIsFilterOpen(false);
+          setIsTrendingOpen(false);
         }}
         className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
       >
@@ -222,7 +224,7 @@ const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter }) => {
       <button
         onClick={() => {
           setSelectedFilter("office");
-          setIsFilterOpen(false);
+          setIsTrendingOpen(false);
         }}
         className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
       >
@@ -233,6 +235,56 @@ const Navbar = ({ setSearchedLocation, selectedFilter, setSelectedFilter }) => {
   )}
 
 </div>
+
+
+ <div className="relative px-8"
+  >
+  
+  <button className="cursor-pointer text-3xl font-bold text-green-500" onClick={()=>setIsTrendingOpen(!isTrendingOpen  )}>
+    <IoMdTrendingUp />
+    </button>
+  
+  {isTrendingOpen &&(
+    <div className="absolute right-0 mt-4 bg-white shadow-lg rounded-2xl p-2 w-44 z-50">
+
+      <button
+      onClick={()=>{
+        setSelectedTrending("all");
+        setIsTrendingOpen(false);
+      }}  className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded">
+        All trending
+      </button>
+
+      <button
+      onClick={()=>{
+        setSelectedTrending("home");
+        setIsTrendingOpen(false)
+      }} className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded">
+        Home
+      </button>
+      
+      <button onClick={()=>{
+        setSelectedTrending("land");
+        setIsTrendingOpen(false)
+      }} className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded">
+        Land
+      </button>
+
+      <button onClick={()=>{
+        setSelectedTrending("room");
+        setIsTrendingOpen(false)
+      }} className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded">
+        Room on rent</button>
+      
+      <button onClick={()=>{
+        setSelectedTrending("office");
+        setIsTrendingOpen(false)
+      }} className="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded">
+        Office on rent</button>
+    </div>
+  )}
+  
+  </div>
 
 
         <div className="flex items-center gap-4">
