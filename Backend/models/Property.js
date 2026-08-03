@@ -138,6 +138,14 @@ video:{
       type:Number,
       default:0,
     },
+    trendingScore:{
+      type:Number,
+      default:0,
+    },
+    isTrending:{
+      type:Boolean,
+      default:false
+    },
 
     comments:[{
       user:{

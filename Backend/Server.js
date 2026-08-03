@@ -11,6 +11,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes.js";
 import PropertyRoutes from "./routes/PropertyRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import trendingRoutes from "./routes/trendingRoutes.js";
 
 const app = express();
 
@@ -33,6 +34,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/property", PropertyRoutes);
 
 app.use("/api/payment", paymentRoutes);
+
+app.use("/api/trending", trendingRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running");

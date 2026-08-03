@@ -18,7 +18,7 @@ import GeomanControl from "../components/map/GeomanControl"
 import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 
-const MapView = ({ searchedLocation, selectedFilter }) => {
+const MapView = ({ searchedLocation, selectedFilter, selectedTrending }) => {
   const { user, savedProperties, setSavedProperties } =
     useContext(AuthContext);
 
@@ -34,19 +34,31 @@ const filteredProperties =
             .trim() === selectedFilter
       );
  
+      
 
-  const fetchProperties = async () => {
-    try {
-      const res = await axiosInstance.get("/property");
-      setProperties(res.data);
-    } catch (err) {
-      console.error(err);
+ const fetchProperties = async () => {
+  try {
+
+    let url = "/property";
+
+    if (selectedTrending !== "none") {
+      url = `/trending/${selectedTrending}`;
     }
-  };
+
+    const res = await axiosInstance.get(url);
+
+    setProperties(res.data);
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+};
 
   useEffect(() => {
     fetchProperties();
-  }, []);
+}, [selectedTrending]);
 
   return (
     <div className="h-[90vh] w-full">

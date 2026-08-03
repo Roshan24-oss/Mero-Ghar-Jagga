@@ -4,6 +4,7 @@ import PropertyFavorite from "../models/PropertyFavoorite.js";
 import PropertyView from "../models/PropertyView.js";
 import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
+import calculateTrending from "../utils/trendingCalculator.js";
 
 
 //helper function for uploading image and video to cloudinary
@@ -236,14 +237,16 @@ export const addView = async (req, res) => {
       visitorId,
     });
 
-    await Property.findByIdAndUpdate(
-      propertyId,
-      {
-        $inc: {
-          views: 1,
-        },
-      }
-    );
+   const property = await Property.findById(propertyId);
+
+property.views += 1;
+
+const result = calculateTrending(property);
+
+property.trendingScore = result.score;
+property.isTrending = result.isTrending;
+
+await property.save();
 
     res.json({
       success: true,
@@ -258,53 +261,65 @@ export const addView = async (req, res) => {
   }
 };
 
-
-export const toggleLike = async (
-  req,
-  res
-) => {
+export const toggleLike = async (req, res) => {
   try {
     const { propertyId } = req.params;
 
-    const existingLike =
-      await PropertyLike.findOne({
-        propertyId,
-        userId: req.user._id,
-      });
+    const existingLike = await PropertyLike.findOne({
+      propertyId,
+      userId: req.user._id,
+    });
 
+    // ================= UNLIKE =================
     if (existingLike) {
-
       await existingLike.deleteOne();
 
-      await Property.findByIdAndUpdate(
-        propertyId,
-        {
-          $inc: {
-            likesCount: -1,
-          },
-        }
-      );
+      const property = await Property.findById(propertyId);
+
+      if (!property) {
+        return res.status(404).json({
+          message: "Property not found",
+        });
+      }
+
+      property.likesCount = Math.max(0, property.likesCount - 1);
+
+      const result = calculateTrending(property);
+
+      property.trendingScore = result.score;
+      property.isTrending = result.isTrending;
+
+      await property.save();
 
       return res.json({
         liked: false,
       });
     }
 
+    // ================= LIKE =================
     await PropertyLike.create({
       propertyId,
       userId: req.user._id,
     });
 
-    await Property.findByIdAndUpdate(
-      propertyId,
-      {
-        $inc: {
-          likesCount: 1,
-        },
-      }
-    );
+    const property = await Property.findById(propertyId);
 
-    res.json({
+    if (!property) {
+      return res.status(404).json({
+        message: "Property not found",
+      });
+    }
+
+    property.likesCount += 1;
+
+    const result = calculateTrending(property);
+
+    property.trendingScore = result.score;
+    property.isTrending = result.isTrending;
+
+    await property.save();
+
+    return res.json({
       liked: true,
     });
 
@@ -316,6 +331,7 @@ export const toggleLike = async (
     });
   }
 };
+ 
 
 export const toggleFavorite = async (
   req,
@@ -330,38 +346,41 @@ export const toggleFavorite = async (
         userId: req.user._id,
       });
 
-    if (existingFavorite) {
+if (existingFavorite) {
 
-      await existingFavorite.deleteOne();
+    await existingFavorite.deleteOne();
 
-      await Property.findByIdAndUpdate(
-        propertyId,
-        {
-          $inc: {
-            favoritesCount: -1,
-          },
-        }
-      );
+    const property = await Property.findById(propertyId);
 
-      return res.json({
+    property.favoritesCount -= 1;
+
+    const result = calculateTrending(property);
+
+    property.trendingScore = result.score;
+    property.isTrending = result.isTrending;
+
+    await property.save();
+
+    return res.json({
         saved: false,
-      });
-    }
+    });
+}
 
     await PropertyFavorite.create({
       propertyId,
       userId: req.user._id,
     });
 
-    await Property.findByIdAndUpdate(
-      propertyId,
-      {
-        $inc: {
-          favoritesCount: 1,
-        },
-      }
-    );
+    const property = await Property.findById(propertyId);
 
+property.favoritesCount += 1;
+
+const result = calculateTrending(property);
+
+property.trendingScore = result.score;
+property.isTrending = result.isTrending;
+
+await property.save();
     res.json({
       saved: true,
     });
@@ -392,6 +411,12 @@ export const addComment = async (req, res) => {
       user: req.user._id,
       text,
     });
+
+    const result = calculateTrending(property);
+
+property.trendingScore = result.score;
+
+property.isTrending = result.isTrending;
     await property.save();
 
     await property.populate("comments.user", "fullName");

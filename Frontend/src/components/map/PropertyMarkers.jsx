@@ -4,7 +4,7 @@ import { FaWhatsapp, FaHeart, FaRegComment } from "react-icons/fa";
 import { useState } from "react";
 
 import axiosInstance from "../../api/axiosInstance";
-import { profileIcon, getCenter } from "./mapUtils";
+import { profileIcon, getCenter, trendingProfileIcon } from "./mapUtils";
 import { format } from "date-fns";
 
 const PropertyMarkers = ({ properties, user, savedProperties, setSavedProperties, refreshProperties }) => {
@@ -202,7 +202,11 @@ const updateProperty = async () => {
           <Marker
             key={prop._id}
             position={[center[1], center[0]]}
-            icon={profileIcon(prop.owner?.fullName)}
+          icon={
+  prop.isTrending
+    ? trendingProfileIcon(prop.owner?.fullName)
+    : profileIcon(prop.owner?.fullName)
+}
             eventHandlers={{
               click: () => {
                 handleView(prop._id);
@@ -211,21 +215,47 @@ const updateProperty = async () => {
             }}
           >
             <Popup>
+              
               <div className="w-[320px] max-h-[500px] overflow-y-auto space-y-2">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold text-blue-600">{prop.label}</h2>
-                  <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full capitalize">
-                    {prop.propertyType}
-                  </span>
+               
+               <div className="flex justify-between items-start">
 
-                  <span className={`text-xs px-2 rounded text-white
-                    ${
-                      prop.status === "available"? "bg-green-500": prop.status === "negotiation"? "bg-yellow-500": "bg-red-500"
-                    }`}>
-{prop.status}
-                  </span>
-                </div>
+  <div>
 
+    <div className="flex items-center gap-2">
+
+      <h2 className="text-lg font-bold text-blue-600">
+        {prop.label}
+      </h2>
+
+      {prop.isTrending && (
+        <span className="bg-gradient-to-r from-orange-500 to-red-600 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md animate-pulse">
+          🔥 TRENDING
+        </span>
+      )}
+
+    </div>
+
+    <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full capitalize">
+      {prop.propertyType}
+    </span>
+
+  </div>
+
+  <span
+    className={`text-xs px-2 py-1 rounded text-white ${
+      prop.status === "available"
+        ? "bg-green-500"
+        : prop.status === "negotiation"
+        ? "bg-yellow-500"
+        : "bg-red-500"
+    }`}
+  >
+    {prop.status}
+  </span>
+
+</div>
+              
                 
 <div className="flex gap-2">
   {prop.images?.length > 0 && (

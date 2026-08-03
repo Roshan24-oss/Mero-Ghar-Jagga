@@ -4,7 +4,7 @@ import MapView from "./MapView.jsx";
 import { useState } from "react";
 const UsersLandingPage = ({ searchedLocation, setSearchedLocation }) => {
   const [selectedFilter, setSelectedFilter]=useState("all");
-  const[selectedTrending, setSelectedTrending]=useState("all");
+  const[selectedTrending, setSelectedTrending]=useState("none");
   return (
     <div className="h-screen flex flex-col">
       
