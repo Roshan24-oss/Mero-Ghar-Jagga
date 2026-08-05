@@ -310,7 +310,11 @@ const updateProperty = async () => {
                   </button>
                 </div>
 
-                <p className="text-sm">📍 {prop.address}</p>
+                <p>
+  {prop.address.tole}, Ward {prop.address.wardNo},{" "}
+  {prop.address.municipality}, {prop.address.district},{" "}
+  {prop.address.province}
+</p>
                 <p className="text-sm">💰 Rs {prop.price}</p>
 
                 <div className="flex gap-3 text-sm">

@@ -33,8 +33,27 @@ const propertySchema = new mongoose.Schema(
     },
 
     address: {
-      type: String,
-      default: "",
+      
+      province:{
+        type: String,
+        default:"",
+      },
+      district:{
+        type: String,
+        default:"",
+      },
+      muncipality:{
+        type: String,
+        default:"",
+      }, 
+      wardNo:{
+        type: Number,
+        default: null,
+      },
+      tole:{
+        type: String,
+        default:"",
+      }
     },
 
     availableDays: {

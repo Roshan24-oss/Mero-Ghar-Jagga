@@ -35,6 +35,28 @@ const uploadToCloudinary = (fileBuffer, folder, resourceType = "image") => {
   });
 };
 
+const nepaliToEnglishNumber = (value) => {
+  const map = {
+    "०": "0",
+    "१": "1",
+    "२": "2",
+    "३": "3",
+    "४": "4",
+    "५": "5",
+    "६": "6",
+    "७": "7",
+    "८": "8",
+    "९": "9",
+  };
+
+  return Number(
+    String(value)
+      .split("")
+      .map((char) => map[char] || char)
+      .join("")
+  );
+};
+
 
 export const addProperty = async (req, res) => {
   try {
@@ -43,7 +65,11 @@ export const addProperty = async (req, res) => {
       label,
       price,
       area,
-      address,
+       province,
+  district,
+  municipality,
+  wardNo,
+  tole,
       availableDays,
       description,
 
@@ -121,7 +147,13 @@ export const addProperty = async (req, res) => {
       label,
       price,
       area,
-      address,
+      address:{
+        province,
+        district,
+        municipality,
+        wardNo: nepaliToEnglishNumber(wardNo),
+        tole
+      },
       availableDays,
       description,
 
@@ -493,7 +525,12 @@ export const updateProperty = async (req, res) => {
       propertyType,
       price,
       area,
-      address,
+     province,
+district,
+municipality,
+wardNo,
+tole,
+houseNo, 
       availableDays,
       description,
       bhk,
@@ -510,7 +547,13 @@ export const updateProperty = async (req, res) => {
     property.propertyType = propertyType;
     property.price = price;
     property.area = area;
-    property.address = address;
+    property.address = {
+      province,
+      district,
+      municipality,
+      wardNo,
+      tole
+    };
     property.availableDays = availableDays;
     property.description = description;
 
@@ -586,6 +629,12 @@ export const updatePropertyStatus= async (req,res)=>{
     })
 
   } catch (error) {
-    
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating property status"
+    });
   }
 }
+
+

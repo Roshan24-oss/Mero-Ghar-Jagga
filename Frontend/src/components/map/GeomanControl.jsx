@@ -7,6 +7,7 @@ import axiosInstance from "../../api/axiosInstance";
 
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
+import AddressSelector from "./AddressSelector.jsx";
 
 const GeomanControl = ({ refreshProperties }) => {
   const map = useMap();
@@ -24,7 +25,11 @@ const GeomanControl = ({ refreshProperties }) => {
 
     // COMMON
     label: "",
-    address: "",
+    province:"",
+    district:"",
+    municipality:"",
+    wardNo:"",
+    tole:"",
     price: "",
     area: "",
     availableDays: "",
@@ -157,7 +162,11 @@ const GeomanControl = ({ refreshProperties }) => {
         propertyType: "",
 
         label: "",
-        address: "",
+        province:"",
+        district:"",
+        municipality:"",
+        wardNo:"",
+        tole:"",
         price: "",
         area: "",
         availableDays: "",
@@ -243,11 +252,9 @@ const GeomanControl = ({ refreshProperties }) => {
               className="w-full border p-2 rounded"
             />
 
-            <input
-              name="address"
-              placeholder="Address"
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
+            <AddressSelector
+              formData={formData}
+              setFormData={setFormData}
             />
 
             <input
