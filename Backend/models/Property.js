@@ -166,6 +166,13 @@ video:{
       default:false
     },
 
+    aiPopularityScore:{
+      type:Number,
+      default:null,
+      min:0,
+      max:100,
+    },
+
     comments:[{
       user:{
         type: mongoose.Schema.Types.ObjectId,

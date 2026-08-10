@@ -5,6 +5,7 @@ import PropertyView from "../models/PropertyView.js";
 import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 import calculateTrending from "../utils/trendingCalculator.js";
+import {predictPopularity} from "../services/aiServices.js";
 
 
 //helper function for uploading image and video to cloudinary
@@ -139,6 +140,33 @@ export const addProperty = async (req, res) => {
     }
   }
 
+  // ================= AI POPULARITY PREDICTION =================
+
+const aiPopularityScore = await predictPopularity({
+  propertyType,
+  price: Number(price),
+  area: Number(area),
+
+  province,
+  district,
+  municipality,
+
+  wardNo: nepaliToEnglishNumber(wardNo),
+
+  bhk: bhk || null,
+  furnished: furnished || null,
+  parking: parking || null,
+
+  roadAccess: roadAccess ? Number(roadAccess) : null,
+
+  roomType: roomType || null,
+  wifi: wifi || null,
+
+  floorNumber: floorNumber ? Number(floorNumber) : null,
+  meetingRoom: meetingRoom || null,
+});
+
+console.log("AI Popularity Score:", aiPopularityScore);
 
     // ✅ CREATE PROPERTY
     const property = await Property.create({
@@ -179,6 +207,8 @@ export const addProperty = async (req, res) => {
       images: imagePaths,
       video:video,
 
+      aiPopularityScore,
+
       owner: req.user._id,
     });
 
@@ -192,6 +222,10 @@ export const addProperty = async (req, res) => {
     });
   }
 };
+
+
+
+
 
 // ✅ GET ALL PROPERTIES
 export const getProperties = async (req, res) => {
