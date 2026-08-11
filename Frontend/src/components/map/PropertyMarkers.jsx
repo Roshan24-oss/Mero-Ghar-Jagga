@@ -4,7 +4,7 @@ import { FaWhatsapp, FaHeart, FaRegComment } from "react-icons/fa";
 import { useState } from "react";
 
 import axiosInstance from "../../api/axiosInstance";
-import { profileIcon, getCenter, trendingProfileIcon } from "./mapUtils";
+import { propertyIcon, getCenter, trendingPropertyIcon } from "./mapUtils";
 import { format } from "date-fns";
 
 const PropertyMarkers = ({ properties, user, savedProperties, setSavedProperties, refreshProperties }) => {
@@ -229,10 +229,12 @@ const updateProperty = async () => {
           <Marker
             key={prop._id}
             position={[center[1], center[0]]}
+
+
           icon={
   prop.isTrending
-    ? trendingProfileIcon(prop.owner?.fullName)
-    : profileIcon(prop.owner?.fullName)
+    ? trendingPropertyIcon(prop.propertyType)
+    : propertyIcon(prop.propertyType)
 }
             eventHandlers={{
               click: () => {

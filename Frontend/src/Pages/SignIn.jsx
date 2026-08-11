@@ -36,7 +36,7 @@ console.log("Login Response:", res.data);
      login(res.data.user);
 
       alert("Login successful ✅");
-      navigate("/");
+      navigate("/", { replace: true });
 
 
     } catch (error) {
