@@ -1,5 +1,3 @@
-// GeomanControl.jsx
-
 import { useEffect, useState } from "react";
 import { useMap } from "react-leaflet";
 
@@ -16,20 +14,20 @@ const GeomanControl = ({ refreshProperties }) => {
 
   const [tempLayer, setTempLayer] = useState(null);
 
-  // ✅ IMAGES STATE
+ 
   const [images, setImages] = useState([]);
-  const [video, setVideo]=useState(null);
+  const [video, setVideo] = useState(null);
 
   const [formData, setFormData] = useState({
     propertyType: "",
 
     // COMMON
     label: "",
-    province:"",
-    district:"",
-    municipality:"",
-    wardNo:"",
-    tole:"",
+    province: "",
+    district: "",
+    municipality: "",
+    wardNo: "",
+    tole: "",
     price: "",
     area: "",
     availableDays: "",
@@ -117,10 +115,7 @@ const GeomanControl = ({ refreshProperties }) => {
       const data = new FormData();
 
       // GEOMETRY
-      data.append(
-        "geometry",
-        JSON.stringify(geoJSON.geometry)
-      );
+      data.append("geometry", JSON.stringify(geoJSON.geometry));
 
       // FORM FIELDS
       Object.keys(formData).forEach((key) => {
@@ -128,18 +123,15 @@ const GeomanControl = ({ refreshProperties }) => {
       });
 
       // AVAILABLE DAYS
-      data.set(
-        "availableDays",
-        Number(formData.availableDays) || 0
-      );
+      data.set("availableDays", Number(formData.availableDays) || 0);
 
       // ✅ IMAGES
       images.forEach((img) => {
         data.append("images", img);
       });
 
-      if(video){
-        data.append("video",video)
+      if (video) {
+        data.append("video", video);
       }
 
       // ✅ API CALL
@@ -162,11 +154,11 @@ const GeomanControl = ({ refreshProperties }) => {
         propertyType: "",
 
         label: "",
-        province:"",
-        district:"",
-        municipality:"",
-        wardNo:"",
-        tole:"",
+        province: "",
+        district: "",
+        municipality: "",
+        wardNo: "",
+        tole: "",
         price: "",
         area: "",
         availableDays: "",
@@ -189,7 +181,6 @@ const GeomanControl = ({ refreshProperties }) => {
       setImages([]);
 
       refreshProperties();
-
     } catch (err) {
       console.error(err);
 
@@ -213,9 +204,9 @@ const GeomanControl = ({ refreshProperties }) => {
   return (
     <>
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-[1000]">
-          <div className="bg-white p-6 rounded-2xl w-[380px] max-h-[90vh] overflow-y-auto space-y-3 shadow-xl">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-[1000] w-full h-full mt-18">
 
+          <div className="bg-white p-6 rounded-2xl w-[380px] max-h-[90vh] overflow-y-auto space-y-3 shadow-xl w-full">
             <h2 className="text-2xl font-bold text-center text-blue-600">
               Add Property
             </h2>
@@ -225,23 +216,17 @@ const GeomanControl = ({ refreshProperties }) => {
               name="propertyType"
               value={formData.propertyType}
               onChange={handleChange}
-              className="w-full border p-2 rounded"
+              className="w-50 border p-2 rounded ml-55"
             >
-              <option value="">
-                Select Property Type
-              </option>
+              <option value="">Select Property Type</option>
 
               <option value="land">Land</option>
 
               <option value="home">Home</option>
 
-              <option value="room">
-                Room Rent
-              </option>
+              <option value="room">Room Rent</option>
 
-              <option value="office">
-                Office Rent
-              </option>
+              <option value="office">Office Rent</option>
             </select>
 
             {/* COMMON */}
@@ -252,10 +237,7 @@ const GeomanControl = ({ refreshProperties }) => {
               className="w-full border p-2 rounded"
             />
 
-            <AddressSelector
-              formData={formData}
-              setFormData={setFormData}
-            />
+            <AddressSelector formData={formData} setFormData={setFormData} />
 
             <input
               name="price"
@@ -298,12 +280,14 @@ const GeomanControl = ({ refreshProperties }) => {
                 You can upload up to 5 images
               </p>
 
-              <label className="block mb-1 font-semibold">Property Videos</label>
+              <label className="block mb-1 font-semibold">
+                Property Videos
+              </label>
 
-              <input 
-              type="file"
-              accept="video/mp4,video/webm,video/quicktime"
-              onChange={(e)=>setVideo(e.target.files[0])}
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                onChange={(e) => setVideo(e.target.files[0])}
               />
             </div>
 
@@ -341,17 +325,11 @@ const GeomanControl = ({ refreshProperties }) => {
                   onChange={handleChange}
                   className="w-full border p-2 rounded"
                 >
-                  <option value="">
-                    Furnished?
-                  </option>
+                  <option value="">Furnished?</option>
 
-                  <option value="yes">
-                    Yes
-                  </option>
+                  <option value="yes">Yes</option>
 
-                  <option value="no">
-                    No
-                  </option>
+                  <option value="no">No</option>
                 </select>
 
                 <select
@@ -359,17 +337,11 @@ const GeomanControl = ({ refreshProperties }) => {
                   onChange={handleChange}
                   className="w-full border p-2 rounded"
                 >
-                  <option value="">
-                    Parking Available?
-                  </option>
+                  <option value="">Parking Available?</option>
 
-                  <option value="yes">
-                    Yes
-                  </option>
+                  <option value="yes">Yes</option>
 
-                  <option value="no">
-                    No
-                  </option>
+                  <option value="no">No</option>
                 </select>
               </>
             )}
@@ -389,17 +361,11 @@ const GeomanControl = ({ refreshProperties }) => {
                   onChange={handleChange}
                   className="w-full border p-2 rounded"
                 >
-                  <option value="">
-                    Wifi Available?
-                  </option>
+                  <option value="">Wifi Available?</option>
 
-                  <option value="yes">
-                    Yes
-                  </option>
+                  <option value="yes">Yes</option>
 
-                  <option value="no">
-                    No
-                  </option>
+                  <option value="no">No</option>
                 </select>
               </>
             )}
@@ -419,17 +385,11 @@ const GeomanControl = ({ refreshProperties }) => {
                   onChange={handleChange}
                   className="w-full border p-2 rounded"
                 >
-                  <option value="">
-                    Meeting Room?
-                  </option>
+                  <option value="">Meeting Room?</option>
 
-                  <option value="yes">
-                    Yes
-                  </option>
+                  <option value="yes">Yes</option>
 
-                  <option value="no">
-                    No
-                  </option>
+                  <option value="no">No</option>
                 </select>
               </>
             )}
