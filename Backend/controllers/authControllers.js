@@ -1,15 +1,13 @@
 import { otpStore } from "../utils/otpStore.js";
 import { sendOtpEmail } from "../utils/sendEmail.js";
-
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
 import User from "../models/User.js";
 
 
-// =========================
+
 // SEND OTP
-// =========================
+
 export const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -49,9 +47,9 @@ export const sendOtp = async (req, res) => {
 };
 
 
-// =========================
+
 // VERIFY OTP
-// =========================
+
 export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -94,9 +92,9 @@ export const verifyOtp = async (req, res) => {
 };
 
 
-// =========================
+
 // SIGNUP
-// =========================
+
 export const signup = async (req, res) => {
   try {
 
@@ -122,7 +120,7 @@ export const signup = async (req, res) => {
       });
     }
 
-    // OTP check (IMPORTANT)
+    // OTP check
     if (!otpStore[email] || !otpStore[email].verified) {
       return res.status(400).json({
         message: "OTP not verified",
@@ -167,7 +165,7 @@ export const signup = async (req, res) => {
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: "7d",
+        expiresIn: "30d",
       }
     );
 
@@ -201,9 +199,9 @@ export const signup = async (req, res) => {
 };
 
 
-// =========================
+
 // LOGIN
-// =========================
+
 export const login = async (req, res) => {
   try {
 
@@ -241,7 +239,7 @@ export const login = async (req, res) => {
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: "7d",
+        expiresIn: "30d",
       }
     );
 

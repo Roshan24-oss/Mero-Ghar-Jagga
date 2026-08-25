@@ -10,6 +10,7 @@ import Failure from "./Pages/payment/Faliur.jsx";
 import Success from "./Pages/payment/Success.jsx";
 import Loading from "./Pages/payment/Loading.jsx";
 import Payment from "./Pages/payment/payment.jsx";
+import PropertyDetails from "./Pages/PropertyDetail.jsx"
 
 const App = () => {
   const [searchedLocation, setSearchedLocation] = useState(null);
@@ -49,6 +50,9 @@ const App = () => {
       <Route path="/success" element={<Success />} />
       <Route path="/loading" element={<Loading />} />
       <Route path="/payment/:propertyId" element={<Payment />} />
+
+
+      <Route path="/property/:id" element={<PropertyDetails/>}/>
     </Routes>
   );
 };

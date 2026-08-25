@@ -12,7 +12,7 @@ model = joblib.load("model.pkl")
 
 
 # ==========================================
-# READ JSON FROM STANDARD INPUT
+# READ JSON INPUT
 # ==========================================
 
 try:
@@ -43,45 +43,43 @@ except json.JSONDecodeError as error:
 
 try:
 
-    new_property = pd.DataFrame([
+    new_property = pd.DataFrame([{
 
-        {
-            "propertyType": input_data.get("propertyType"),
+        "propertyType": input_data.get("propertyType"),
 
-            "price": input_data.get("price"),
+        "price": input_data.get("price"),
 
-            "area": input_data.get("area"),
+        "area": input_data.get("area"),
 
-            "province": input_data.get("province"),
+        "province": input_data.get("province"),
 
-            "district": input_data.get("district"),
+        "district": input_data.get("district"),
 
-            "municipality": input_data.get("municipality"),
+        "municipality": input_data.get("municipality"),
 
-            "wardNo": input_data.get("wardNo"),
+        "wardNo": input_data.get("wardNo"),
 
-            "bhk": input_data.get("bhk"),
+        "bhk": input_data.get("bhk"),
 
-            "furnished": input_data.get("furnished"),
+        "furnished": input_data.get("furnished"),
 
-            "parking": input_data.get("parking"),
+        "parking": input_data.get("parking"),
 
-            "roadAccess": input_data.get("roadAccess"),
+        "roadAccess": input_data.get("roadAccess"),
 
-            "roomType": input_data.get("roomType"),
+        "roomType": input_data.get("roomType"),
 
-            "wifi": input_data.get("wifi"),
+        "wifi": input_data.get("wifi"),
 
-            "floorNumber": input_data.get("floorNumber"),
+        "floorNumber": input_data.get("floorNumber"),
 
-            "meetingRoom": input_data.get("meetingRoom")
-        }
+        "meetingRoom": input_data.get("meetingRoom")
 
-    ])
+    }])
 
 
     # ==========================================
-    # MAKE PREDICTION
+    # PREDICTION
     # ==========================================
 
     prediction = model.predict(new_property)
@@ -90,7 +88,7 @@ try:
 
 
     # ==========================================
-    # LIMIT SCORE
+    # LIMIT SCORE 0-100
     # ==========================================
 
     popularity_score = max(
@@ -100,7 +98,7 @@ try:
 
 
     # ==========================================
-    # RETURN RESULT
+    # RESPONSE
     # ==========================================
 
     response = {

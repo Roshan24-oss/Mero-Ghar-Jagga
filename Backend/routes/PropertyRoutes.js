@@ -1,30 +1,106 @@
 import express from "express";
-import { addProperty, getProperties, addView, toggleLike, toggleFavorite , addComment, deleteProperty, updateProperty, updatePropertyStatus} from "../controllers/propertyController.js";
+
+import {
+  addProperty,
+  getProperties,
+  getPropertyById,
+  addView,
+  toggleLike,
+  toggleFavorite,
+  addComment,
+  deleteProperty,
+  updateProperty,
+  updatePropertyStatus,
+} from "../controllers/propertyController.js";
+
 import authMiddleware from "../middleware/authMiddlewares.js";
 import upload from "../middleware/upload.js";
 
 const router = express.Router();
 
-// only owner can add
-router.post("/", authMiddleware, upload.fields([
-    {name:"images", maxCount:5},
-    {name:"video", maxCount:1}
-]),
-addProperty
-)
+// ===============================
+// ADD PROPERTY
+// ===============================
+router.post(
+  "/",
+  authMiddleware,
+  upload.fields([
+    { name: "images", maxCount: 5 },
+    { name: "video", maxCount: 1 },
+  ]),
+  addProperty
+);
 
+// ===============================
+// DELETE PROPERTY
+// ===============================
+router.delete(
+  "/:propertyId",
+  authMiddleware,
+  deleteProperty
+);
 
-router.delete("/:propertyId", authMiddleware, deleteProperty);
+// ===============================
+// GET ALL PROPERTIES
+// ===============================
+router.get("/", getProperties);
 
-// everyone can view
-router.get("/",  getProperties);
+// ===============================
+// GET SINGLE PROPERTY
+// ===============================
+router.get("/:id", getPropertyById);
 
-router.post("/view/:propertyId", addView);
-router.post("/like/:propertyId", authMiddleware, toggleLike);
-router.post("/favorite/:propertyId", authMiddleware, toggleFavorite);
-router.post("/comment/:propertyId", authMiddleware, addComment);
+// ===============================
+// PROPERTY VIEWS
+// ===============================
+router.post(
+  "/view/:propertyId",
+  addView
+);
 
-router.put("/:propertyId", authMiddleware, updateProperty);
+// ===============================
+// LIKE
+// ===============================
+router.post(
+  "/like/:propertyId",
+  authMiddleware,
+  toggleLike
+);
 
-router.put("/status/:propertyId",authMiddleware,updatePropertyStatus);
+// ===============================
+// FAVORITE
+// ===============================
+router.post(
+  "/favorite/:propertyId",
+  authMiddleware,
+  toggleFavorite
+);
+
+// ===============================
+// COMMENT
+// ===============================
+router.post(
+  "/comment/:propertyId",
+  authMiddleware,
+  addComment
+);
+
+// ===============================
+// UPDATE PROPERTY
+// ===============================
+router.put(
+  "/:propertyId",
+  authMiddleware,
+  updateProperty
+);
+
+// ===============================
+// UPDATE STATUS
+// ===============================
+router.put(
+  "/status/:propertyId",
+  authMiddleware,
+  updatePropertyStatus
+);
+
 export default router;

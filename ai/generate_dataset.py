@@ -1,6 +1,18 @@
 import random
 import pandas as pd
 
+
+# ============================================================
+# RANDOM SEED
+# ============================================================
+
+random.seed(42)
+
+
+# ============================================================
+# LOCATIONS
+# ============================================================
+
 locations = [
     {
         "province": "Bagmati",
@@ -49,6 +61,11 @@ locations = [
     },
 ]
 
+
+# ============================================================
+# PROPERTY TYPES
+# ============================================================
+
 property_types = [
     "land",
     "home",
@@ -57,191 +74,404 @@ property_types = [
 ]
 
 
+# ============================================================
+# GENERATE ONE PROPERTY
+# ============================================================
+
 def generate_property():
+
     location = random.choice(locations)
+
     property_type = random.choice(property_types)
 
-    # Common property features
-    if property_type == "land":
-        price = random.randint(3000000, 50000000)
+    province = location["province"]
+    district = location["district"]
+    municipality = location["municipality"]
 
-    elif property_type == "home":
-        price = random.randint(5000000, 50000000)
+    ward_no = random.randint(1, 32)
 
-    elif property_type == "room":
-        price = random.randint(8000, 50000)
 
-    else:  # office
-        price = random.randint(20000, 150000)
+    # ========================================================
+    # DEFAULT VALUES
+    # ========================================================
 
-    area = round(random.uniform(1, 10), 2)
-    parking = random.choice(["Yes", "No"])
-    road_access = random.choice([10, 13, 16, 20, 25, 30])
-    furnished = random.choice(["Fully", "Semi", "No"])
+    price = 0
+    area_sqft = 0
 
-    # Home-specific features
-    bhk = ""
-    if property_type == "home":
-        bhk = random.choice(["1", "2", "3", "4", "5"])
+    bedrooms = 0
+    furnishing = ""
 
-    # Room-specific features
+    parking = False
+    road_access = 0
+
     room_type = ""
-    wifi = ""
-    if property_type == "room":
-        room_type = random.choice(["Single", "Double", "Shared"])
-        wifi = random.choice(["Yes", "No"])
 
-    # Office-specific features
-    floor_number = ""
-    meeting_room = ""
-    if property_type == "office":
-        floor_number = random.randint(1, 8)
-        meeting_room = random.choice(["Yes", "No"])
+    wifi = False
 
-    # Land-specific feature
+    floor_number = 0
+
+    meeting_room = False
+
+    property_age_years = 0
+
+
+    # ========================================================
+    # LAND
+    # ========================================================
+
     if property_type == "land":
-        furnished = ""
-        parking = ""
 
-    popularity = 50
+        area_sqft = round(
+            random.uniform(700, 5000),
+            2
+        )
 
-    # Location effect
-    location_scores = {
-        "Kathmandu": 15,
-        "Lalitpur": 13,
-        "Bhaktapur": 11,
-        "Kaski": 10,
-        "Chitwan": 9,
-        "Morang": 8,
-        "Jhapa": 7,
-        "Rupandehi": 8,
-        "Kailali": 7,
-    }
+        price = random.randint(
+            3000000,
+            50000000
+        )
 
-    popularity += location_scores.get(location["district"], 5)
+        road_access = random.choice(
+            [
+                0,
+                10,
+                13,
+                16,
+                20,
+                25,
+                30
+            ]
+        )
 
-    # Road access effect
-    if road_access >= 20:
-        popularity += 10
-    elif road_access >= 16:
-        popularity += 7
-    elif road_access >= 13:
-        popularity += 4
-    else:
-        popularity -= 2
+        # Land itself does not have building age.
+        property_age_years = 0
 
-    # Price competitiveness effect
-    if property_type == "land":
-        expected_price = area * 5000000
+
+    # ========================================================
+    # HOME
+    # ========================================================
 
     elif property_type == "home":
-        expected_price = area * 8000000
+
+        area_sqft = round(
+            random.uniform(800, 5000),
+            2
+        )
+
+        price = random.randint(
+            5000000,
+            50000000
+        )
+
+        bedrooms = random.randint(
+            1,
+            5
+        )
+
+        furnishing = random.choice(
+            [
+                "fully-furnished",
+                "semi-furnished",
+                "unfurnished"
+            ]
+        )
+
+        parking = random.choice(
+            [
+                True,
+                False
+            ]
+        )
+
+        road_access = random.choice(
+            [
+                0,
+                10,
+                13,
+                16,
+                20,
+                25,
+                30
+            ]
+        )
+
+        floor_number = random.randint(
+            1,
+            4
+        )
+
+        property_age_years = random.randint(
+            0,
+            40
+        )
+
+
+    # ========================================================
+    # ROOM
+    # ========================================================
 
     elif property_type == "room":
-        expected_price = 30000
 
-    else:  # office
-        expected_price = area * 25000
+        area_sqft = round(
+            random.uniform(100, 1000),
+            2
+        )
 
-    price_ratio = price / expected_price
+        price = random.randint(
+            8000,
+            50000
+        )
 
-    if price_ratio <= 0.80:
-        popularity += 10
-    elif price_ratio <= 1.00:
-        popularity += 6
-    elif price_ratio <= 1.20:
-        popularity += 0
-    elif price_ratio <= 1.40:
-        popularity -= 6
+        bedrooms = random.choice(
+            [
+                0,
+                1,
+                1,
+                2
+            ]
+        )
+
+        furnishing = random.choice(
+            [
+                "fully-furnished",
+                "semi-furnished",
+                "unfurnished"
+            ]
+        )
+
+        parking = random.choice(
+            [
+                True,
+                False
+            ]
+        )
+
+        road_access = random.choice(
+            [
+                0,
+                10,
+                13,
+                16,
+                20
+            ]
+        )
+
+        room_type = random.choice(
+            [
+                "single",
+                "double",
+                "shared",
+                "studio",
+                "1bhk",
+                "2bhk"
+            ]
+        )
+
+        wifi = random.choice(
+            [
+                True,
+                False
+            ]
+        )
+
+        floor_number = random.randint(
+            1,
+            5
+        )
+
+        property_age_years = random.randint(
+            0,
+            30
+        )
+
+
+    # ========================================================
+    # OFFICE
+    # ========================================================
+
     else:
-        popularity -= 10
 
-    # Area effect
-    if 3 <= area <= 7:
-        popularity += 5
+        area_sqft = round(
+            random.uniform(300, 5000),
+            2
+        )
 
-    # Property-specific factors
-    if property_type == "home":
+        price = random.randint(
+            20000,
+            150000
+        )
 
-        if bhk in ["2", "3", "4"]:
-            popularity += 8
+        furnishing = random.choice(
+            [
+                "fully-furnished",
+                "semi-furnished",
+                "unfurnished"
+            ]
+        )
 
-        if parking == "Yes":
-            popularity += 6
+        parking = random.choice(
+            [
+                True,
+                False
+            ]
+        )
 
-        if furnished == "Fully":
-            popularity += 4
-        elif furnished == "Semi":
-            popularity += 2
+        road_access = random.choice(
+            [
+                0,
+                10,
+                13,
+                16,
+                20,
+                25,
+                30
+            ]
+        )
 
-    elif property_type == "land":
+        floor_number = random.randint(
+            1,
+            8
+        )
 
-        if area >= 4:
-            popularity += 5
+        meeting_room = random.choice(
+            [
+                True,
+                False
+            ]
+        )
 
-    elif property_type == "room":
+        property_age_years = random.randint(
+            0,
+            40
+        )
 
-        if wifi == "Yes":
-            popularity += 7
 
-        if room_type == "Single":
-            popularity += 3
-
-    elif property_type == "office":
-
-        if meeting_room == "Yes":
-            popularity += 6
-
-        if parking == "Yes":
-            popularity += 5
-
-        if floor_number in [2, 3, 4, 5]:
-            popularity += 3
-
-    # Add realistic random variation
-    popularity += random.gauss(0, 8)
-
-    # Keep score between 0 and 100
-    popularity = max(0, min(100, popularity))
-
-    popularity = round(popularity, 2)
+    # ========================================================
+    # RETURN PROPERTY
+    # ========================================================
 
     return {
+
         "propertyType": property_type,
+
         "price": price,
-        "area": area,
 
-        "province": location["province"],
-        "district": location["district"],
-        "municipality": location["municipality"],
-        "wardNo": random.randint(1, 32),
+        "area": area_sqft,
 
-        "bhk": bhk,
-        "furnished": furnished,
+        "province": province,
+
+        "district": district,
+
+        "municipality": municipality,
+
+        "wardNo": ward_no,
+
+        "bhk": bedrooms,
+
+        "furnished": furnishing,
+
         "parking": parking,
+
         "roadAccess": road_access,
 
         "roomType": room_type,
+
         "wifi": wifi,
 
         "floorNumber": floor_number,
+
         "meetingRoom": meeting_room,
 
-        "popularityScore": popularity,
+        "propertyAgeYears": property_age_years,
     }
 
 
-# Create an empty list BEFORE adding properties
+# ============================================================
+# GENERATE DATASET
+# ============================================================
 
 properties = []
 
-for _ in range(3000):
-    properties.append(generate_property())
+for _ in range(5000):
 
-df = pd.DataFrame(properties)
+    properties.append(
+        generate_property()
+    )
 
-df.to_csv("dataset.csv", index=False)
 
-print(f"Dataset generated successfully: {len(df)} properties")
-print(df.head())
+# ============================================================
+# CREATE DATAFRAME
+# ============================================================
 
+df = pd.DataFrame(
+    properties
+)
+
+
+# ============================================================
+# SAVE DATASET
+# ============================================================
+
+df.to_csv(
+    "dataset.csv",
+    index=False
+)
+
+
+# ============================================================
+# OUTPUT
+# ============================================================
+
+print(
+    "\n=========================================="
+)
+
+print(
+    "DATASET GENERATED SUCCESSFULLY"
+)
+
+print(
+    "=========================================="
+)
+
+print(
+    f"Total properties : {len(df)}"
+)
+
+print(
+    f"Total columns    : {len(df.columns)}"
+)
+
+
+print(
+    "\nProperty type distribution:"
+)
+
+print(
+    df["propertyType"].value_counts()
+)
+
+
+print(
+    "\nProperty age statistics:"
+)
+
+print(
+    df["propertyAgeYears"].describe()
+)
+
+
+print(
+    "\nSample data:"
+)
+
+print(
+    df.head(10).to_string(
+        index=False
+    )
+)
+
+
+print(
+    "\nDataset saved as dataset.csv"
+)

@@ -1,131 +1,460 @@
-import { Marker, Popup } from "react-leaflet";
+import { Marker } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
-import { FaWhatsapp, FaHeart, FaRegComment } from "react-icons/fa";
 import { useState } from "react";
-
-import axiosInstance from "../../api/axiosInstance";
-import { propertyIcon, getCenter, trendingPropertyIcon } from "./mapUtils";
+import {
+  FaWhatsapp,
+  FaHeart,
+  FaRegComment,
+  FaEye,
+  FaBookmark,
+  FaMapMarkerAlt,
+  FaHome,
+  FaRulerCombined,
+  FaCar,
+  FaBed,
+  FaBath,
+  FaBuilding,
+  FaEdit,
+  FaTrash,
+  FaChevronRight,
+  FaRobot,
+  FaRoad,
+  FaTimes,
+  FaCheckCircle,
+  FaImage,
+} from "react-icons/fa";
 import { format } from "date-fns";
 
-const PropertyMarkers = ({ properties, user, savedProperties, setSavedProperties, refreshProperties }) => {
+import axiosInstance from "../../api/axiosInstance";
+
+import {
+  propertyIcon,
+  getCenter,
+  trendingPropertyIcon,
+} from "./mapUtils";
+
+const PropertyMarkers = ({
+  properties,
+  user,
+  savedProperties,
+  setSavedProperties,
+  refreshProperties,
+  setSelectedProperty: parentSetSelectedProperty,
+}) => {
   const navigate = useNavigate();
 
-  const [selectedProperty, setSelectedProperty] = useState(null);
-  const [commentText, setCommentText] = useState("");
-  const [showCommentModal, setShowCommentModal] = useState(false);
-  const [unlockedIds, setUnlockedIds] = useState(new Set());
+  const [activeProperty, setActiveProperty] =
+    useState(null);
 
-  const [showEditModal, setShowEditModal]=useState(false);
-  const [editData, setEditData]=useState(null);
+  const [commentProperty, setCommentProperty] =
+    useState(null);
 
-  // Check whether the current user has paid to see this property's contact info
+  const [commentText, setCommentText] =
+    useState("");
+
+  const [showCommentModal, setShowCommentModal] =
+    useState(false);
+
+  const [unlockedIds, setUnlockedIds] =
+    useState(new Set());
+
+  const [showEditModal, setShowEditModal] =
+    useState(false);
+
+  const [editData, setEditData] =
+    useState(null);
+
+  /* =====================================================
+     PROPERTY OPEN / CLOSE
+  ===================================================== */
+
+  const openProperty = (property) => {
+    setActiveProperty(property);
+
+    parentSetSelectedProperty?.(property);
+  };
+
+  const closeProperty = () => {
+    setActiveProperty(null);
+
+    parentSetSelectedProperty?.(null);
+  };
+
+  /* =====================================================
+     GET MORE DETAILS
+  ===================================================== */
+
+  const handleGetMoreDetails = (propertyId) => {
+    closeProperty();
+
+    navigate(`/property/${propertyId}`);
+  };
+
+  /* =====================================================
+     CONTACT
+  ===================================================== */
+
   const handleUnlockOrView = async (property) => {
-    if (!user) {
-      navigate("/signin");
-      return;
-    }
+    if (!user) return;
+
     if (unlockedIds.has(property._id)) return;
 
     try {
-      const { data } = await axiosInstance.get(`/payment/access/${property._id}`);
+      const { data } =
+        await axiosInstance.get(
+          `/payment/access/${property._id}`
+        );
+
       if (data.hasAccess) {
-        setUnlockedIds((prev) => new Set(prev).add(property._id));
+        setUnlockedIds((prev) => {
+          const updated = new Set(prev);
+          updated.add(property._id);
+          return updated;
+        });
       }
-      // if not paid, we just leave it locked — don't auto-redirect on marker click,
-      // only redirect when they actually click "Pay to Unlock"
-    } catch (err) {
-      console.log(err);
+    } catch (error) {
+      console.log(error);
     }
   };
 
-  // VIEW PROPERTY
+  /* =====================================================
+     VIEW
+  ===================================================== */
+
   const handleView = async (propertyId) => {
     try {
-      const visitorId = localStorage.getItem("visitorId") || crypto.randomUUID();
-      localStorage.setItem("visitorId", visitorId);
+      let visitorId =
+        localStorage.getItem("visitorId");
 
-      await axiosInstance.post(`/property/view/${propertyId}`, { visitorId });
-    } catch (err) {
-      console.log(err);
+      if (!visitorId) {
+        visitorId = crypto.randomUUID();
+        localStorage.setItem(
+          "visitorId",
+          visitorId
+        );
+      }
+
+      await axiosInstance.post(
+        `/property/view/${propertyId}`,
+        { visitorId }
+      );
+    } catch (error) {
+      console.log(error);
     }
   };
 
-  // DELETE PROPERTY
-  const handleDelete = async (propertyId) => {
-    try {
-      const confirmDelete = window.confirm("Are you sure you want to delete this property?");
-      if (!confirmDelete) return;
+  /* =====================================================
+     DELETE
+  ===================================================== */
 
-      await axiosInstance.delete(`/property/${propertyId}`);
+  const handleDelete = async (propertyId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this property?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await axiosInstance.delete(
+        `/property/${propertyId}`
+      );
+
       alert("Property deleted successfully");
+
+      closeProperty();
       refreshProperties();
-    } catch (err) {
-      console.log(err);
+    } catch (error) {
+      console.log(error);
       alert("Error deleting property");
     }
   };
 
+  /* =====================================================
+     EDIT
+  ===================================================== */
 
-  //Edit Porperty
+  const handleEdit = (property) => {
+    setEditData({
+      ...property,
+      address: {
+        ...property.address,
+      },
+      landArea: property.landArea
+        ? { ...property.landArea }
+        : {
+            value: "",
+            unit: "sqft",
+          },
+      roadAccess: property.roadAccess
+        ? { ...property.roadAccess }
+        : {
+            available: false,
+            width: "",
+            widthUnit: "ft",
+            type: "other",
+          },
+      homeDetails: property.homeDetails
+        ? {
+            ...property.homeDetails,
+            builtUpArea:
+              property.homeDetails.builtUpArea
+                ? {
+                    ...property.homeDetails
+                      .builtUpArea,
+                  }
+                : {
+                    value: "",
+                    unit: "sqft",
+                  },
+            parking:
+              property.homeDetails.parking
+                ? {
+                    ...property.homeDetails.parking,
+                  }
+                : {
+                    available: false,
+                    capacity: "",
+                  },
+            kitchen:
+              property.homeDetails.kitchen
+                ? {
+                    ...property.homeDetails.kitchen,
+                  }
+                : {
+                    available: false,
+                    count: "",
+                  },
+            balcony:
+              property.homeDetails.balcony
+                ? {
+                    ...property.homeDetails.balcony,
+                  }
+                : {
+                    available: false,
+                    count: "",
+                  },
+          }
+        : null,
+      roomDetails: property.roomDetails
+        ? {
+            ...property.roomDetails,
+            bathroom:
+              property.roomDetails.bathroom
+                ? {
+                    ...property.roomDetails.bathroom,
+                  }
+                : {
+                    available: false,
+                    attached: false,
+                  },
+            kitchen:
+              property.roomDetails.kitchen
+                ? {
+                    ...property.roomDetails.kitchen,
+                  }
+                : {
+                    available: false,
+                  },
+            balcony:
+              property.roomDetails.balcony
+                ? {
+                    ...property.roomDetails.balcony,
+                  }
+                : {
+                    available: false,
+                  },
+            wifi: property.roomDetails.wifi
+              ? {
+                  ...property.roomDetails.wifi,
+                }
+              : {
+                  available: false,
+                },
+            parking:
+              property.roomDetails.parking
+                ? {
+                    ...property.roomDetails.parking,
+                  }
+                : {
+                    available: false,
+                  },
+          }
+        : null,
+      officeDetails: property.officeDetails
+        ? {
+            ...property.officeDetails,
+            area: property.officeDetails.area
+              ? {
+                  ...property.officeDetails.area,
+                }
+              : {
+                  value: "",
+                  unit: "sqft",
+                },
+            meetingRoom:
+              property.officeDetails.meetingRoom
+                ? {
+                    ...property.officeDetails
+                      .meetingRoom,
+                  }
+                : {
+                    available: false,
+                    count: "",
+                  },
+            parking:
+              property.officeDetails.parking
+                ? {
+                    ...property.officeDetails
+                      .parking,
+                  }
+                : {
+                    available: false,
+                  },
+          }
+        : null,
+    });
 
-  const handleEdit= (property)=>{
-    setEditData(property);
     setShowEditModal(true);
-  }
+  };
 
-const handleEditChange = (e) => {
-  const { name, value } = e.target;
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
 
-  setEditData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-};
+    setEditData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-const updateProperty = async () => {
-  try {
-    await axiosInstance.put(
-      `/property/${editData._id}`,
-      editData
-    );
+  const handleNestedChange = (
+    section,
+    field,
+    value
+  ) => {
+    setEditData((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value,
+      },
+    }));
+  };
 
-    alert("Property updated successfully ✅");
+  const handleDeepNestedChange = (
+    section,
+    nestedSection,
+    field,
+    value
+  ) => {
+    setEditData((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [nestedSection]: {
+          ...prev[section]?.[nestedSection],
+          [field]: value,
+        },
+      },
+    }));
+  };
 
-    // Close the modal
-    setShowEditModal(false);
+  /* =====================================================
+     UPDATE
+  ===================================================== */
 
-    // Clear previous property data
-    setEditData(null);
+  const updateProperty = async () => {
+    try {
+      const payload = {
+        propertyType: editData.propertyType,
+        price: Number(editData.price),
+        currency: editData.currency || "NPR",
+        isNegotiable: Boolean(
+          editData.isNegotiable
+        ),
+        description: editData.description || "",
+        address: editData.address,
+        geometry: editData.geometry,
 
-    // Reload properties from backend
-    refreshProperties();
+        landArea:
+          editData.propertyType === "land"
+            ? editData.landArea
+            : undefined,
 
-  } catch (err) {
-    console.log(err);
-    alert("Failed to update property");
-  }
-};
-  // LIKE PROPERTY
+        roadAccess: editData.roadAccess,
+
+        homeDetails:
+          editData.propertyType === "home"
+            ? editData.homeDetails
+            : undefined,
+
+        roomDetails:
+          editData.propertyType === "room"
+            ? editData.roomDetails
+            : undefined,
+
+        officeDetails:
+          editData.propertyType === "office"
+            ? editData.officeDetails
+            : undefined,
+
+        status: editData.status,
+        availableFrom: editData.availableFrom,
+      };
+
+      await axiosInstance.put(
+        `/property/${editData._id}`,
+        payload
+      );
+
+      alert("Property updated successfully ✅");
+
+      setShowEditModal(false);
+      setEditData(null);
+
+      closeProperty();
+      refreshProperties();
+    } catch (error) {
+      console.log(error);
+
+      alert(
+        error.response?.data?.message ||
+          "Failed to update property"
+      );
+    }
+  };
+
+  /* =====================================================
+     LIKE
+  ===================================================== */
+
   const handleLike = async (propertyId) => {
     if (!user) {
       navigate("/signin");
       return;
     }
+
     try {
-      await axiosInstance.post(`/property/like/${propertyId}`);
+      await axiosInstance.post(
+        `/property/like/${propertyId}`
+      );
+
       refreshProperties();
-    } catch (err) {
-      console.log(err);
+    } catch (error) {
+      console.log(error);
     }
   };
 
-  // COMMENT PROPERTY
+  /* =====================================================
+     COMMENT
+  ===================================================== */
+
   const handleComment = (property) => {
     if (!user) {
       navigate("/signin");
       return;
     }
-    setSelectedProperty(property);
+
+    setCommentProperty(property);
     setShowCommentModal(true);
   };
 
@@ -133,612 +462,1568 @@ const updateProperty = async () => {
     if (!commentText.trim()) return;
 
     try {
-      const res = await axiosInstance.post(`/property/comment/${selectedProperty._id}`, {
-        text: commentText,
-      });
+      const res =
+        await axiosInstance.post(
+          `/property/comment/${commentProperty._id}`,
+          {
+            text: commentText,
+          }
+        );
 
-      setSelectedProperty({
-        ...selectedProperty,
-        comments: res.data.comments,
-      });
+      const updatedComments =
+        res.data.comments;
+
+      setCommentProperty((prev) => ({
+        ...prev,
+        comments: updatedComments,
+      }));
+
+      setActiveProperty((prev) =>
+        prev?._id === commentProperty._id
+          ? {
+              ...prev,
+              comments: updatedComments,
+            }
+          : prev
+      );
 
       setCommentText("");
-    } catch (err) {
-      console.log(err);
+
+      refreshProperties();
+    } catch (error) {
+      console.log(error);
     }
   };
 
-  // FAVORITE PROPERTY
+  /* =====================================================
+     FAVORITE
+  ===================================================== */
+
   const handleFavorite = async (propertyId) => {
     if (!user) {
       navigate("/signin");
       return;
     }
+
     try {
-      await axiosInstance.post(`/property/favorite/${propertyId}`);
+      await axiosInstance.post(
+        `/property/favorite/${propertyId}`
+      );
+
       refreshProperties();
-    } catch (err) {
-      console.log(err);
+    } catch (error) {
+      console.log(error);
     }
   };
 
-// available,sold status change garne functiono
-  const changeStatus = async(propertyId,status)=>{
+  /* =====================================================
+     STATUS
+  ===================================================== */
+
+  const changeStatus = async (
+    propertyId,
+    status
+  ) => {
     try {
-      await axiosInstance.put(`/property/status/${propertyId}`,{status});
+      await axiosInstance.put(
+        `/property/status/${propertyId}`,
+        { status }
+      );
+
+      setActiveProperty((prev) =>
+        prev?._id === propertyId
+          ? { ...prev, status }
+          : prev
+      );
 
       refreshProperties();
     } catch (error) {
       console.log(error);
       alert("Failed to update property status.");
     }
-  }
-  // SAVE PROPERTY
+  };
+
+  /* =====================================================
+     SAVE
+  ===================================================== */
+
   const handleSaveProperty = (property) => {
     if (!user) {
       navigate("/signin");
       return;
     }
 
-    const alreadySaved = savedProperties.find((item) => item._id === property._id);
+    const alreadySaved =
+      savedProperties.find(
+        (item) => item._id === property._id
+      );
+
     if (alreadySaved) {
       alert("Property already saved");
       return;
     }
 
-    setSavedProperties([...savedProperties, property]);
+    setSavedProperties([
+      ...savedProperties,
+      property,
+    ]);
+
     alert("Property saved ❤️");
   };
 
+  /* =====================================================
+     HELPERS
+  ===================================================== */
+
   const getPopularityLabel = (score) => {
-  if (score >= 80) {
-    return {
-      text: "🔥 Very High Popularity",
-      className: "text-green-600",
-    };
-  }
+    if (score >= 80)
+      return {
+        text: "Very High",
+        className: "text-green-600",
+      };
 
-  if (score >= 65) {
-    return {
-      text: "👍 High Popularity",
-      className: "text-blue-600",
-    };
-  }
+    if (score >= 65)
+      return {
+        text: "High",
+        className: "text-blue-600",
+      };
 
-  if (score >= 50) {
-    return {
-      text: "🙂 Moderate Popularity",
-      className: "text-yellow-600",
-    };
-  }
+    if (score >= 50)
+      return {
+        text: "Moderate",
+        className: "text-yellow-600",
+      };
 
-  return {
-    text: "📉 Low Popularity",
-    className: "text-red-600",
+    return {
+      text: "Low",
+      className: "text-red-600",
+    };
   };
-};
-  
+
+  const formatPrice = (price) => {
+    if (!price) return "Price not available";
+
+    return new Intl.NumberFormat("en-IN").format(
+      price
+    );
+  };
+
+  const getPropertyIcon = (type) => {
+    if (type === "home") return <FaHome />;
+    if (type === "room") return <FaBuilding />;
+    if (type === "office")
+      return <FaBuilding />;
+
+    return <FaRulerCombined />;
+  };
+
+  const getAddress = (property) => {
+    const address = property.address;
+
+    if (!address)
+      return "Location not available";
+
+    return [
+      address.tole,
+      address.wardNo
+        ? `Ward ${address.wardNo}`
+        : null,
+      address.municipality ||
+        address.muncipality,
+      address.district,
+      address.province,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  };
+
+  /* =====================================================
+     MARKERS
+  ===================================================== */
 
   return (
     <>
-      {properties.map((prop) => {
-        const center = getCenter(prop.geometry);
+      {properties.map((property) => {
+        const center = getCenter(
+          property.geometry
+        );
+
         if (!center) return null;
 
         return (
           <Marker
-            key={prop._id}
-            position={[center[1], center[0]]}
-
-
-          icon={
-  prop.isTrending
-    ? trendingPropertyIcon(prop.propertyType)
-    : propertyIcon(prop.propertyType)
-}
+            key={property._id}
+            position={[
+              center[1],
+              center[0],
+            ]}
+            icon={
+              property.isTrending
+                ? trendingPropertyIcon(
+                    property.propertyType
+                  )
+                : propertyIcon(
+                    property.propertyType
+                  )
+            }
             eventHandlers={{
               click: () => {
-                handleView(prop._id);
-                handleUnlockOrView(prop); // check access when popup opens
+                handleView(property._id);
+                handleUnlockOrView(property);
+                openProperty(property);
               },
             }}
-          >
-            <Popup>
-              
-              <div className="w-[320px] max-h-[500px] overflow-y-auto space-y-2">
-               
-               <div className="flex justify-between items-start">
-
-  <div>
-
-    <div className="flex items-center gap-2">
-
-      <h2 className="text-lg font-bold text-blue-600">
-        {prop.label}
-      </h2>
-
-      {prop.isTrending && (
-        <span className="bg-gradient-to-r from-orange-500 to-red-600 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md animate-pulse">
-          🔥 TRENDING
-        </span>
-      )}
-
-    </div>
-
-    <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full capitalize">
-      {prop.propertyType}
-    </span>
-
-  </div>
-
-  <span
-    className={`text-xs px-2 py-1 rounded text-white ${
-      prop.status === "available"
-        ? "bg-green-500"
-        : prop.status === "negotiation"
-        ? "bg-yellow-500"
-        : "bg-red-500"
-    }`}
-  >
-    {prop.status}
-  </span>
-
-</div>
-              
-                
-<div className="flex gap-2">
-  {prop.images?.length > 0 && (
-    <img
-      src={prop.images[0].url}
-      alt="property"
-      className={`${prop.video?.url ? "w-1/2" : "w-full"} h-32 object-cover rounded-lg`}
-    />
-  )}
-
-  {prop.video?.url && (
-    <video
-      controls
-      className={`${prop.images?.length > 0 ? "w-1/2" : "w-full"} h-32 object-cover rounded-lg`}
-    >
-      <source src={prop.video.url} type="video/mp4" />
-    </video>
-  )}
-</div>
-
-                <button
-                  onClick={() => handleSaveProperty(prop)}
-                  className="flex items-center gap-2 bg-pink-500 text-white px-3 py-1 rounded-full text-sm hover:bg-pink-600 transition"
-                >
-                  <FaHeart />
-                  Save Property
-                </button>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleLike(prop._id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded text-xs"
-                  >
-                    ❤️ Like
-                  </button>
-
-                  <button
-                    onClick={() => handleFavorite(prop._id)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded text-xs"
-                  >
-                    🔖 Save
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleComment(prop);
-                    }}
-                    className="bg-blue-500 text-white px-2 py-1 rounded text-xs cursor-pointer"
-                  >
-                    <FaRegComment />
-                  </button>
-                </div>
-
-                <p>
-  {prop.address.tole}, Ward {prop.address.wardNo},{" "}
-  {prop.address.municipality}, {prop.address.district},{" "}
-  {prop.address.province}
-</p>
-                <p className="text-sm">💰 Rs {prop.price}</p>
-
-                <div className="flex gap-3 text-sm">
-                  <span>👁 {prop.views || 0}</span>
-                  <span>❤️ {prop.likesCount || 0}</span>
-                  <span>🔖 {prop.favoritesCount || 0}</span>
-                </div>
-{/* ================= AI POPULARITY ================= */}
-
-{/* ================= AI POPULARITY ================= */}
-
-{prop.aiPopularityScore !== null &&
- prop.aiPopularityScore !== undefined && (() => {
-
-  const score = Number(prop.aiPopularityScore);
-  const popularity = getPopularityLabel(score);
-
-  return (
-    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-
-      <div className="flex justify-between items-center">
-
-        <span className="text-sm font-semibold text-blue-700">
-          🤖 AI Popularity
-        </span>
-
-        <span className="text-sm font-bold text-blue-700">
-          {score.toFixed(2)}%
-        </span>
-
-      </div>
-
-      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-
-        <div
-          className="bg-blue-600 h-2 rounded-full"
-          style={{
-            width: `${Math.min(Math.max(score, 0), 100)}%`,
-          }}
-        />
-
-      </div>
-
-      <p className={`text-xs font-semibold mt-1 ${popularity.className}`}>
-        {popularity.text}
-      </p>
-
-      <p className="text-[11px] text-gray-500">
-        Prediction generated by AI based on property features
-      </p>
-
-    </div>
-  );
-
-})()}
-
-                {prop.area && <p className="text-sm">📏 {prop.area}</p>}
-                <p className="text-sm">⏳ {prop.availableDays} days</p>
-                <p className="text-xs text-gray-600">{prop.description}</p>
-                <p className="text-xs text-gray-500">
-                  Registered: {format(new Date(prop.createdAt), "PPP p")}
-                </p>
-
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold">👤 {prop.owner?.fullName}</p>
-{unlockedIds.has(prop._id) ? (
-  <>
-    <p className="text-sm">📞 {prop.owner?.phone}</p>
-
-    <a
-      href={`https://wa.me/${prop.owner?.phone}?text=Hello, I'm interested in your property "${prop.label}". Is it still available?`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-2 text-green-500 hover:text-green-600 font-bold"
-    >
-      <FaWhatsapp />
-      Chat on WhatsApp
-    </a>
-  </>
-) : prop.status === "sold" ? (
-  <p className="text-red-600 font-bold">
-    This property has been sold.
-  </p>
-) : (
-  <button
-    onClick={() => navigate(`/payment/${prop._id}`)}
-    className="bg-green-600 text-white px-3 py-1 rounded text-xs"
-  >
-    🔒 Pay to Unlock Contact
-  </button>
-)}
-                    
-                  
-                </div>
-
-{user?._id === prop.owner?._id &&(
-  <>
-  
-  <div className="mb-2">
-
-    <label className="text-sm font-semibold">  Property Status</label>
-
-    <select
-     value={prop.status}
-     onChange={(e)=> changeStatus(prop._id, e.target.value)}
-     className="w-full border rounded p-1 mt-1"
-    
-    >
-      <option value="available"> Available</option>
-      <option value="negotiation">Negotiation</option>
-      <option value="sold"> Sold</option>
-
-    </select>
-
-  </div>
-  
-  <button onClick={()=> handleEdit(prop)}
-    className="bg-blue-500 text-white px-2 py-1 rounded">
-    Edit
-  </button>
-
-  <button
-  onClick={()=>handleDelete(prop._id)}
-  className="bg-red-500 text-white px-2 ml-2 rounded">
-    
-    Delete
-  </button>
-  </>
-
-)}
-
-              
-
-
-              </div>
-            </Popup>
-          </Marker>
+          />
         );
       })}
 
-      {showCommentModal && (
+      {/* =====================================================
+          PROPERTY DETAILS
+      ===================================================== */}
+
+      {activeProperty && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center"
-          style={{ zIndex: 9999999 }}
+          className="fixed inset-0 z-[999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              closeProperty();
+            }
+          }}
         >
-          <div className="bg-white p-4 rounded-lg w-[400px]">
-            <h2 className="text-lg font-bold mb-3">Comments for {selectedProperty?.label}</h2>
+          <div
+            className="relative w-full max-w-5xl h-[94vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+            {/* HEADER */}
 
-            <div className="max-h-[250px] overflow-y-auto border p-2 rounded">
-              {selectedProperty?.comments?.length > 0 ? (
-                selectedProperty.comments.map((comment, index) => (
-                  <div key={index} className="border-b py-2">
-                    <p className="font-semibold">{comment.user?.fullName}</p>
-                    <p>{comment.text}</p>
+            <div className="flex-shrink-0 px-5 py-4 border-b bg-white flex justify-between items-center">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-400">
+                  Property Details
+                </p>
+
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 truncate">
+                  {activeProperty.title ||
+                    "Property Details"}
+                </h2>
+              </div>
+
+              <button
+                onClick={closeProperty}
+                className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-600 flex items-center justify-center transition"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* CONTENT */}
+
+            <div className="flex-1 overflow-y-auto">
+              {/* IMAGE */}
+
+              <div className="relative bg-gray-100">
+                {activeProperty.images
+                  ?.length > 0 ? (
+                  <img
+                    src={
+                      activeProperty.images[0].url
+                    }
+                    alt={
+                      activeProperty.title ||
+                      "Property"
+                    }
+                    className="w-full h-[220px] sm:h-[300px] md:h-[350px] object-cover"
+                  />
+                ) : (
+                  <div className="h-[220px] sm:h-[300px] md:h-[350px] flex items-center justify-center bg-gray-100">
+                    <FaHome className="text-7xl text-blue-300" />
                   </div>
-                ))
-              ) : (
-                <p>No comments yet</p>
-              )}
+                )}
+
+                {activeProperty.isTrending && (
+                  <div className="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow">
+                    🔥 TRENDING
+                  </div>
+                )}
+
+                <div
+                  className={`absolute top-4 right-4 text-white text-xs font-bold px-4 py-2 rounded-full shadow ${
+                    activeProperty.status ===
+                    "available"
+                      ? "bg-green-500"
+                      : activeProperty.status ===
+                        "negotiation"
+                      ? "bg-yellow-500"
+                      : activeProperty.status ===
+                        "sold"
+                      ? "bg-red-500"
+                      : "bg-gray-500"
+                  }`}
+                >
+                  {activeProperty.status
+                    ? activeProperty.status
+                        .charAt(0)
+                        .toUpperCase() +
+                      activeProperty.status.slice(
+                        1
+                      )
+                    : "Available"}
+                </div>
+
+                {activeProperty.images
+                  ?.length > 1 && (
+                  <div className="absolute bottom-4 right-4 bg-black/70 text-white text-xs px-3 py-2 rounded-full flex items-center gap-2">
+                    <FaImage />
+                    {activeProperty.images.length}{" "}
+                    Photos
+                  </div>
+                )}
+              </div>
+
+              {/* MAIN */}
+
+              <div className="max-w-4xl mx-auto p-5 sm:p-7">
+                {/* TITLE */}
+
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                      {activeProperty.title ||
+                        "Property for Sale"}
+                    </h1>
+
+                    <div className="flex gap-2 mt-2 text-gray-500">
+                      <FaMapMarkerAlt className="text-red-500 mt-1 flex-shrink-0" />
+
+                      <p className="text-sm">
+                        {getAddress(
+                          activeProperty
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="self-start flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm font-semibold capitalize">
+                    {getPropertyIcon(
+                      activeProperty.propertyType
+                    )}
+
+                    {activeProperty.propertyType}
+                  </span>
+                </div>
+
+                {/* PRICE */}
+
+                <div className="mt-5 bg-blue-50 border border-blue-100 rounded-2xl p-5">
+                  <p className="text-xs text-gray-500">
+                    Property Price
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-3xl font-extrabold text-blue-700">
+                      Rs.{" "}
+                      {formatPrice(
+                        activeProperty.price
+                      )}
+                    </p>
+
+                    {activeProperty.isNegotiable && (
+                      <span className="flex items-center gap-1 text-green-600 text-sm font-semibold">
+                        <FaCheckCircle />
+                        Negotiable
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* PROPERTY INFORMATION */}
+
+                <div className="mt-6">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">
+                    Property Information
+                  </h3>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {activeProperty.propertyType ===
+                      "land" &&
+                      activeProperty.landArea && (
+                        <InfoBox
+                          icon={<FaRulerCombined />}
+                          label="Land Area"
+                          value={`${activeProperty.landArea.value} ${activeProperty.landArea.unit}`}
+                        />
+                      )}
+
+                    {activeProperty.propertyType ===
+                      "home" &&
+                      activeProperty.homeDetails
+                        ?.builtUpArea && (
+                        <InfoBox
+                          icon={<FaRulerCombined />}
+                          label="Built-up Area"
+                          value={`${activeProperty.homeDetails.builtUpArea.value} ${activeProperty.homeDetails.builtUpArea.unit}`}
+                        />
+                      )}
+
+                    {activeProperty.propertyType ===
+                      "home" &&
+                      activeProperty.homeDetails
+                        ?.bedrooms !==
+                        undefined && (
+                        <InfoBox
+                          icon={<FaBed />}
+                          label="Bedrooms"
+                          value={
+                            activeProperty
+                              .homeDetails
+                              .bedrooms
+                          }
+                        />
+                      )}
+
+                    {activeProperty.propertyType ===
+                      "home" &&
+                      activeProperty.homeDetails
+                        ?.bathrooms !==
+                        undefined && (
+                        <InfoBox
+                          icon={<FaBath />}
+                          label="Bathrooms"
+                          value={
+                            activeProperty
+                              .homeDetails
+                              .bathrooms
+                          }
+                        />
+                      )}
+
+                    {activeProperty.propertyType ===
+                      "home" &&
+                      activeProperty.homeDetails
+                        ?.floors !==
+                        undefined && (
+                        <InfoBox
+                          icon={<FaBuilding />}
+                          label="Floors"
+                          value={
+                            activeProperty
+                              .homeDetails
+                              .floors
+                          }
+                        />
+                      )}
+
+                    {activeProperty.propertyType ===
+                      "room" &&
+                      activeProperty.roomDetails
+                        ?.roomType && (
+                        <InfoBox
+                          icon={<FaBed />}
+                          label="Room Type"
+                          value={
+                            activeProperty
+                              .roomDetails
+                              .roomType
+                          }
+                        />
+                      )}
+
+                    {activeProperty.propertyType ===
+                      "room" &&
+                      activeProperty.roomDetails
+                        ?.floor !==
+                        undefined && (
+                        <InfoBox
+                          icon={<FaBuilding />}
+                          label="Floor"
+                          value={
+                            activeProperty
+                              .roomDetails
+                              .floor
+                          }
+                        />
+                      )}
+
+                    {activeProperty.propertyType ===
+                      "office" &&
+                      activeProperty.officeDetails
+                        ?.area && (
+                        <InfoBox
+                          icon={<FaRulerCombined />}
+                          label="Office Area"
+                          value={`${activeProperty.officeDetails.area.value} ${activeProperty.officeDetails.area.unit}`}
+                        />
+                      )}
+
+                    {activeProperty.propertyType ===
+                      "office" &&
+                      activeProperty.officeDetails
+                        ?.floor !==
+                        undefined && (
+                        <InfoBox
+                          icon={<FaBuilding />}
+                          label="Floor"
+                          value={
+                            activeProperty
+                              .officeDetails
+                              .floor
+                          }
+                        />
+                      )}
+
+                    {activeProperty.propertyType ===
+                      "home" &&
+                      activeProperty.homeDetails
+                        ?.parking?.available && (
+                        <InfoBox
+                          icon={<FaCar />}
+                          label="Parking"
+                          value="Available"
+                          valueClass="text-green-600"
+                        />
+                      )}
+
+                    {activeProperty.roadAccess
+                      ?.available && (
+                      <InfoBox
+                        icon={<FaRoad />}
+                        label="Road Access"
+                        value={`${activeProperty.roadAccess.width} ${activeProperty.roadAccess.widthUnit}`}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* AI */}
+
+                {activeProperty.aiPopularityScore !==
+                  null &&
+                  activeProperty.aiPopularityScore !==
+                    undefined && (
+                    <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+                            <FaRobot />
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-gray-500">
+                              AI Prediction
+                            </p>
+
+                            <h3 className="font-bold">
+                              Property Popularity
+                            </h3>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-3xl font-extrabold text-blue-700">
+                            {Number(
+                              activeProperty.aiPopularityScore
+                            ).toFixed(1)}
+                            %
+                          </p>
+
+                          <p
+                            className={`text-sm font-bold ${
+                              getPopularityLabel(
+                                Number(
+                                  activeProperty.aiPopularityScore
+                                )
+                              ).className
+                            }`}
+                          >
+                            {
+                              getPopularityLabel(
+                                Number(
+                                  activeProperty.aiPopularityScore
+                                )
+                              ).text
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="w-full bg-white rounded-full h-3 mt-4 overflow-hidden">
+                        <div
+                          className="bg-blue-600 h-full rounded-full"
+                          style={{
+                            width: `${Math.min(
+                              Math.max(
+                                Number(
+                                  activeProperty.aiPopularityScore
+                                ),
+                                0
+                              ),
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+
+                      <p className="text-xs text-gray-500 mt-3">
+                        AI prediction based on property
+                        features and trained machine
+                        learning model.
+                      </p>
+                    </div>
+                  )}
+
+                {/* ENGAGEMENT */}
+
+                <div className="mt-6 grid grid-cols-4 gap-3">
+                  <StatBox
+                    icon={<FaEye />}
+                    value={
+                      activeProperty.views || 0
+                    }
+                    label="Views"
+                  />
+
+                  <StatBox
+                    icon={<FaHeart />}
+                    value={
+                      activeProperty.likesCount ||
+                      0
+                    }
+                    label="Likes"
+                  />
+
+                  <StatBox
+                    icon={<FaBookmark />}
+                    value={
+                      activeProperty.favoritesCount ||
+                      0
+                    }
+                    label="Saves"
+                  />
+
+                  <StatBox
+                    icon={<FaRegComment />}
+                    value={
+                      activeProperty.comments
+                        ?.length || 0
+                    }
+                    label="Comments"
+                  />
+                </div>
+
+                {/* DESCRIPTION */}
+
+                {activeProperty.description && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-bold mb-2">
+                      Description
+                    </h3>
+
+                    <p className="text-gray-600 leading-7">
+                      {
+                        activeProperty.description
+                      }
+                    </p>
+                  </div>
+                )}
+
+                {/* ACTIONS */}
+
+                <div className="mt-6 grid grid-cols-3 gap-3">
+                  <ActionButton
+                    onClick={() =>
+                      handleLike(
+                        activeProperty._id
+                      )
+                    }
+                    icon={<FaHeart />}
+                    text="Like"
+                    className="bg-red-50 text-red-600 hover:bg-red-100"
+                  />
+
+                  <ActionButton
+                    onClick={() =>
+                      handleFavorite(
+                        activeProperty._id
+                      )
+                    }
+                    icon={<FaBookmark />}
+                    text="Save"
+                    className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                  />
+
+                  <ActionButton
+                    onClick={() =>
+                      handleComment(
+                        activeProperty
+                      )
+                    }
+                    icon={<FaRegComment />}
+                    text="Comment"
+                    className="bg-blue-50 text-blue-600 hover:bg-blue-100"
+                  />
+                </div>
+
+                {/* OWNER */}
+
+                <div className="mt-6 border rounded-2xl p-5 bg-gray-50">
+                  <p className="text-xs text-gray-500 mb-3">
+                    PROPERTY OWNER
+                  </p>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                      {activeProperty.owner?.fullName
+                        ?.charAt(0)
+                        ?.toUpperCase() || "U"}
+                    </div>
+
+                    <div>
+                      <p className="font-bold">
+                        {activeProperty.owner
+                          ?.fullName ||
+                          "Property Owner"}
+                      </p>
+
+                      <p className="text-xs text-gray-500">
+                        Property Owner
+                      </p>
+                    </div>
+                  </div>
+
+                  {unlockedIds.has(
+                    activeProperty._id
+                  ) ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="bg-white border rounded-xl p-3">
+                        <p className="text-xs text-gray-500">
+                          Phone Number
+                        </p>
+
+                        <p className="font-semibold">
+                          📞{" "}
+                          {
+                            activeProperty.owner
+                              ?.phone
+                          }
+                        </p>
+                      </div>
+
+                      <a
+                        href={`https://wa.me/${activeProperty.owner?.phone}?text=Hello, I'm interested in your property "${activeProperty.title}". Is it still available?`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold text-sm"
+                      >
+                        <FaWhatsapp />
+                        Chat on WhatsApp
+                      </a>
+                    </div>
+                  ) : activeProperty.status ===
+                    "sold" ? (
+                    <div className="mt-4 bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 text-sm font-semibold">
+                      This property has been sold.
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        navigate(
+                          `/payment/${activeProperty._id}`
+                        )
+                      }
+                      className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold"
+                    >
+                      🔒 Pay to Unlock Contact
+                    </button>
+                  )}
+                </div>
+
+                {/* OWNER CONTROLS */}
+
+                {user?._id ===
+                  activeProperty.owner?._id && (
+                  <div className="mt-6 border-t pt-5">
+                    <p className="text-xs font-bold text-gray-500 mb-3">
+                      OWNER CONTROLS
+                    </p>
+
+                    <select
+                      value={
+                        activeProperty.status ||
+                        "available"
+                      }
+                      onChange={(e) =>
+                        changeStatus(
+                          activeProperty._id,
+                          e.target.value
+                        )
+                      }
+                      className="w-full border rounded-xl p-3 mb-3"
+                    >
+                      <option value="available">
+                        Available
+                      </option>
+
+                      <option value="negotiation">
+                        Negotiation
+                      </option>
+
+                      <option value="sold">
+                        Sold
+                      </option>
+
+                      <option value="inactive">
+                        Inactive
+                      </option>
+                    </select>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() =>
+                          handleEdit(
+                            activeProperty
+                          )
+                        }
+                        className="flex items-center justify-center gap-2 bg-blue-500 text-white py-3 rounded-xl"
+                      >
+                        <FaEdit />
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          handleDelete(
+                            activeProperty._id
+                          )
+                        }
+                        className="flex items-center justify-center gap-2 bg-red-500 text-white py-3 rounded-xl"
+                      >
+                        <FaTrash />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* GET MORE DETAILS */}
+
+                <button
+                  onClick={() =>
+                    handleGetMoreDetails(
+                      activeProperty._id
+                    )
+                  }
+                  className="w-full mt-6 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg transition"
+                >
+                  Get More Details
+                  <FaChevronRight />
+                </button>
+
+                <p className="text-xs text-gray-400 text-center mt-5 pb-3">
+                  Registered:{" "}
+                  {activeProperty.createdAt
+                    ? format(
+                        new Date(
+                          activeProperty.createdAt
+                        ),
+                        "PPP p"
+                      )
+                    : "N/A"}
+                </p>
+              </div>
             </div>
-
-            <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              className="w-full border mt-3 p-2 rounded"
-              placeholder="Write a comment..."
-            />
-
-            <div className="flex justify-end gap-2 mt-3">
-              <button onClick={() => setShowCommentModal(false)} className="px-3 py-1 bg-gray-300 rounded">
-                Cancel
-              </button>
-              <button onClick={submitComment} className="px-3 py-1 bg-blue-500 text-white rounded">
-                Post
-              </button>
-            </div>
-
-
           </div>
         </div>
       )}
 
+      {/* =====================================================
+          COMMENT MODAL
+      ===================================================== */}
+
+      {showCommentModal && (
+        <div className="fixed inset-0 z-[10000000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
+              <div>
+                <h2 className="font-bold">
+                  Comments
+                </h2>
+
+                <p className="text-xs text-blue-100">
+                  {commentProperty?.title}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowCommentModal(false);
+                  setCommentText("");
+                }}
+                className="p-2 rounded-full hover:bg-white/20"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="max-h-[300px] overflow-y-auto border rounded-xl p-3 space-y-3">
+                {commentProperty?.comments
+                  ?.length > 0 ? (
+                  commentProperty.comments.map(
+                    (comment, index) => (
+                      <div
+                        key={index}
+                        className="border-b last:border-b-0 pb-3"
+                      >
+                        <p className="font-semibold text-sm">
+                          {comment.user
+                            ?.fullName || "User"}
+                        </p>
+
+                        <p className="text-sm text-gray-600 mt-1">
+                          {comment.text}
+                        </p>
+                      </div>
+                    )
+                  )
+                ) : (
+                  <p className="text-center text-gray-500 py-8 text-sm">
+                    No comments yet.
+                  </p>
+                )}
+              </div>
+
+              <textarea
+                value={commentText}
+                onChange={(e) =>
+                  setCommentText(e.target.value)
+                }
+                rows={3}
+                placeholder="Write a comment..."
+                className="w-full border rounded-xl p-3 mt-3 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+
+              <div className="flex justify-end gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    setShowCommentModal(false);
+                    setCommentText("");
+                  }}
+                  className="px-4 py-2 bg-gray-200 rounded-lg"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={submitComment}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold"
+                >
+                  Post Comment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          EDIT MODAL
+      ===================================================== */}
 
       {showEditModal && editData && (
-  <div
-    className="fixed inset-0 bg-black/50 flex items-center justify-center"
-    style={{ zIndex: 999999 }}
-  >
-    <div className="bg-white p-6 rounded-lg w-[500px] max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[11000000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-3xl max-h-[95vh] overflow-y-auto rounded-2xl shadow-2xl">
+            <div className="sticky top-0 z-10 bg-blue-600 text-white p-5 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold">
+                  Edit Property
+                </h2>
 
-      <h2 className="text-2xl font-bold mb-4 text-center">
-        Edit Property
-      </h2>
+                <p className="text-xs text-blue-100">
+                  Update your property information
+                </p>
+              </div>
 
-      {/* Property Title */}
-      <input
-        type="text"
-        name="label"
-        value={editData.label || ""}
-        onChange={handleEditChange}
-        placeholder="Property Title"
-        className="w-full border p-2 rounded mb-3"
-      />
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditData(null);
+                }}
+                className="p-2 rounded-full hover:bg-white/20"
+              >
+                <FaTimes />
+              </button>
+            </div>
 
-      {/* Address */}
-      <input
-        type="text"
-        name="address"
-        value={editData.address || ""}
-        onChange={handleEditChange}
-        placeholder="Address"
-        className="w-full border p-2 rounded mb-3"
-      />
+            <div className="p-5 space-y-6">
+              {/* BASIC */}
 
-      {/* Price */}
-      <input
-        type="number"
-        name="price"
-        value={editData.price || ""}
-        onChange={handleEditChange}
-        placeholder="Price"
-        className="w-full border p-2 rounded mb-3"
-      />
+              <section>
+                <h3 className="font-bold mb-3">
+                  Basic Information
+                </h3>
 
-      {/* Area */}
-      <input
-        type="text"
-        name="area"
-        value={editData.area || ""}
-        onChange={handleEditChange}
-        placeholder="Area"
-        className="w-full border p-2 rounded mb-3"
-      />
+                <div className="grid md:grid-cols-2 gap-3">
+                  <input
+                    name="propertyType"
+                    value={
+                      editData.propertyType || ""
+                    }
+                    onChange={handleEditChange}
+                    className="border rounded-lg p-2"
+                    placeholder="Property Type"
+                  />
 
-      {/* Available Days */}
-      <input
-        type="number"
-        name="availableDays"
-        value={editData.availableDays || ""}
-        onChange={handleEditChange}
-        placeholder="Available Days"
-        className="w-full border p-2 rounded mb-3"
-      />
+                  <input
+                    type="number"
+                    name="price"
+                    value={editData.price || ""}
+                    onChange={handleEditChange}
+                    className="border rounded-lg p-2"
+                    placeholder="Price"
+                  />
+                </div>
+              </section>
 
-      {/* Description */}
-      <textarea
-        name="description"
-        value={editData.description || ""}
-        onChange={handleEditChange}
-        placeholder="Description"
-        className="w-full border p-2 rounded mb-3"
-      />
+              {/* ADDRESS */}
 
-      {/* Property Type */}
-      <select
-        name="propertyType"
-        value={editData.propertyType || ""}
-        onChange={handleEditChange}
-        className="w-full border p-2 rounded mb-3"
-      >
-        <option value="land">Land</option>
-        <option value="home">Home</option>
-        <option value="room">Room</option>
-        <option value="office">Office</option>
-      </select>
+              <section>
+                <h3 className="font-bold mb-3">
+                  Location
+                </h3>
 
-      {/* ---------- LAND ---------- */}
+                <div className="grid md:grid-cols-2 gap-3">
+                  {[
+                    ["province", "Province"],
+                    ["district", "District"],
+                    ["municipality", "Municipality"],
+                    ["wardNo", "Ward No"],
+                    ["tole", "Tole"],
+                  ].map(([field, placeholder]) => (
+                    <input
+                      key={field}
+                      type={
+                        field === "wardNo"
+                          ? "number"
+                          : "text"
+                      }
+                      placeholder={placeholder}
+                      value={
+                        editData.address?.[
+                          field
+                        ] || ""
+                      }
+                      onChange={(e) =>
+                        handleNestedChange(
+                          "address",
+                          field,
+                          field === "wardNo"
+                            ? Number(
+                                e.target.value
+                              )
+                            : e.target.value
+                        )
+                      }
+                      className={`border rounded-lg p-2 ${
+                        field === "tole"
+                          ? "md:col-span-2"
+                          : ""
+                      }`}
+                    />
+                  ))}
+                </div>
+              </section>
 
-      {editData.propertyType === "land" && (
-        <>
-          <input
-            type="text"
-            name="roadAccess"
-            value={editData.roadAccess || ""}
-            onChange={handleEditChange}
-            placeholder="Road Access"
-            className="w-full border p-2 rounded mb-3"
-          />
-        </>
+              {/* LAND */}
+
+              {editData.propertyType ===
+                "land" && (
+                <section>
+                  <h3 className="font-bold mb-3">
+                    Land Information
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      placeholder="Land Area"
+                      value={
+                        editData.landArea?.value ||
+                        ""
+                      }
+                      onChange={(e) =>
+                        handleNestedChange(
+                          "landArea",
+                          "value",
+                          e.target.value
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    />
+
+                    <select
+                      value={
+                        editData.landArea?.unit ||
+                        "sqft"
+                      }
+                      onChange={(e) =>
+                        handleNestedChange(
+                          "landArea",
+                          "unit",
+                          e.target.value
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    >
+                      <option value="sqft">
+                        Sq Ft
+                      </option>
+                      <option value="sqm">
+                        Sq M
+                      </option>
+                      <option value="ropani">
+                        Ropani
+                      </option>
+                      <option value="aana">
+                        Aana
+                      </option>
+                      <option value="paisa">
+                        Paisa
+                      </option>
+                      <option value="daam">
+                        Daam
+                      </option>
+                      <option value="bigha">
+                        Bigha
+                      </option>
+                      <option value="kattha">
+                        Kattha
+                      </option>
+                      <option value="dhur">
+                        Dhur
+                      </option>
+                    </select>
+                  </div>
+                </section>
+              )}
+
+              {/* HOME */}
+
+              {editData.propertyType ===
+                "home" && (
+                <section>
+                  <h3 className="font-bold mb-3">
+                    Home Information
+                  </h3>
+
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      placeholder="Built-up Area"
+                      value={
+                        editData.homeDetails
+                          ?.builtUpArea?.value ||
+                        ""
+                      }
+                      onChange={(e) =>
+                        handleDeepNestedChange(
+                          "homeDetails",
+                          "builtUpArea",
+                          "value",
+                          e.target.value
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    />
+
+                    <select
+                      value={
+                        editData.homeDetails
+                          ?.builtUpArea?.unit ||
+                        "sqft"
+                      }
+                      onChange={(e) =>
+                        handleDeepNestedChange(
+                          "homeDetails",
+                          "builtUpArea",
+                          "unit",
+                          e.target.value
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    >
+                      <option value="sqft">
+                        Sq Ft
+                      </option>
+                      <option value="sqm">
+                        Sq M
+                      </option>
+                    </select>
+
+                    {[
+                      ["bedrooms", "Bedrooms"],
+                      ["bathrooms", "Bathrooms"],
+                      ["floors", "Floors"],
+                      [
+                        "propertyAge",
+                        "Property Age",
+                      ],
+                    ].map(([field, label]) => (
+                      <input
+                        key={field}
+                        type="number"
+                        placeholder={label}
+                        value={
+                          editData.homeDetails?.[
+                            field
+                          ] || ""
+                        }
+                        onChange={(e) =>
+                          handleNestedChange(
+                            "homeDetails",
+                            field,
+                            Number(
+                              e.target.value
+                            )
+                          )
+                        }
+                        className="border rounded-lg p-2"
+                      />
+                    ))}
+
+                    <select
+                      value={
+                        editData.homeDetails
+                          ?.furnishing || ""
+                      }
+                      onChange={(e) =>
+                        handleNestedChange(
+                          "homeDetails",
+                          "furnishing",
+                          e.target.value
+                        )
+                      }
+                      className="border rounded-lg p-2 md:col-span-2"
+                    >
+                      <option value="">
+                        Furnishing
+                      </option>
+                      <option value="fully-furnished">
+                        Fully Furnished
+                      </option>
+                      <option value="semi-furnished">
+                        Semi Furnished
+                      </option>
+                      <option value="unfurnished">
+                        Unfurnished
+                      </option>
+                    </select>
+                  </div>
+                </section>
+              )}
+
+              {/* ROOM */}
+
+              {editData.propertyType ===
+                "room" && (
+                <section>
+                  <h3 className="font-bold mb-3">
+                    Room Information
+                  </h3>
+
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <select
+                      value={
+                        editData.roomDetails
+                          ?.roomType || ""
+                      }
+                      onChange={(e) =>
+                        handleNestedChange(
+                          "roomDetails",
+                          "roomType",
+                          e.target.value
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    >
+                      <option value="">
+                        Room Type
+                      </option>
+                      <option value="single">
+                        Single
+                      </option>
+                      <option value="double">
+                        Double
+                      </option>
+                      <option value="shared">
+                        Shared
+                      </option>
+                      <option value="studio">
+                        Studio
+                      </option>
+                      <option value="1bhk">
+                        1 BHK
+                      </option>
+                      <option value="2bhk">
+                        2 BHK
+                      </option>
+                    </select>
+
+                    <input
+                      type="number"
+                      placeholder="Floor"
+                      value={
+                        editData.roomDetails
+                          ?.floor || ""
+                      }
+                      onChange={(e) =>
+                        handleNestedChange(
+                          "roomDetails",
+                          "floor",
+                          Number(
+                            e.target.value
+                          )
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    />
+
+                    <select
+                      value={
+                        editData.roomDetails
+                          ?.furnishing || ""
+                      }
+                      onChange={(e) =>
+                        handleNestedChange(
+                          "roomDetails",
+                          "furnishing",
+                          e.target.value
+                        )
+                      }
+                      className="border rounded-lg p-2 md:col-span-2"
+                    >
+                      <option value="">
+                        Furnishing
+                      </option>
+                      <option value="fully-furnished">
+                        Fully Furnished
+                      </option>
+                      <option value="semi-furnished">
+                        Semi Furnished
+                      </option>
+                      <option value="unfurnished">
+                        Unfurnished
+                      </option>
+                    </select>
+                  </div>
+                </section>
+              )}
+
+              {/* OFFICE */}
+
+              {editData.propertyType ===
+                "office" && (
+                <section>
+                  <h3 className="font-bold mb-3">
+                    Office Information
+                  </h3>
+
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      placeholder="Office Area"
+                      value={
+                        editData.officeDetails?.area
+                          ?.value || ""
+                      }
+                      onChange={(e) =>
+                        handleDeepNestedChange(
+                          "officeDetails",
+                          "area",
+                          "value",
+                          e.target.value
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    />
+
+                    <select
+                      value={
+                        editData.officeDetails?.area
+                          ?.unit || "sqft"
+                      }
+                      onChange={(e) =>
+                        handleDeepNestedChange(
+                          "officeDetails",
+                          "area",
+                          "unit",
+                          e.target.value
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    >
+                      <option value="sqft">
+                        Sq Ft
+                      </option>
+                      <option value="sqm">
+                        Sq M
+                      </option>
+                    </select>
+
+                    <input
+                      type="number"
+                      placeholder="Floor"
+                      value={
+                        editData.officeDetails
+                          ?.floor || ""
+                      }
+                      onChange={(e) =>
+                        handleNestedChange(
+                          "officeDetails",
+                          "floor",
+                          Number(
+                            e.target.value
+                          )
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    />
+
+                    <input
+                      type="number"
+                      placeholder="Number of Rooms"
+                      value={
+                        editData.officeDetails
+                          ?.numberOfRooms || ""
+                      }
+                      onChange={(e) =>
+                        handleNestedChange(
+                          "officeDetails",
+                          "numberOfRooms",
+                          Number(
+                            e.target.value
+                          )
+                        )
+                      }
+                      className="border rounded-lg p-2"
+                    />
+                  </div>
+                </section>
+              )}
+
+              {/* DESCRIPTION */}
+
+              <section>
+                <h3 className="font-bold mb-2">
+                  Description
+                </h3>
+
+                <textarea
+                  value={
+                    editData.description || ""
+                  }
+                  onChange={(e) =>
+                    setEditData((prev) => ({
+                      ...prev,
+                      description:
+                        e.target.value,
+                    }))
+                  }
+                  rows={4}
+                  className="w-full border rounded-lg p-3 resize-none"
+                  placeholder="Property description"
+                />
+              </section>
+
+              {/* BUTTONS */}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditData(null);
+                  }}
+                  className="flex-1 bg-gray-200 py-3 rounded-xl font-semibold"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={updateProperty}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold"
+                >
+                  Update Property
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-
-      {/* ---------- HOME ---------- */}
-
-      {editData.propertyType === "home" && (
-        <>
-          <input
-            type="text"
-            name="bhk"
-            value={editData.bhk || ""}
-            onChange={handleEditChange}
-            placeholder="BHK"
-            className="w-full border p-2 rounded mb-3"
-          />
-
-          <select
-            name="furnished"
-            value={editData.furnished || ""}
-            onChange={handleEditChange}
-            className="w-full border p-2 rounded mb-3"
-          >
-            <option value="">Furnished?</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-
-          <select
-            name="parking"
-            value={editData.parking || ""}
-            onChange={handleEditChange}
-            className="w-full border p-2 rounded mb-3"
-          >
-            <option value="">Parking?</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </>
-      )}
-
-      {/* ---------- ROOM ---------- */}
-
-      {editData.propertyType === "room" && (
-        <>
-          <input
-            type="text"
-            name="roomType"
-            value={editData.roomType || ""}
-            onChange={handleEditChange}
-            placeholder="Room Type"
-            className="w-full border p-2 rounded mb-3"
-          />
-
-          <select
-            name="wifi"
-            value={editData.wifi || ""}
-            onChange={handleEditChange}
-            className="w-full border p-2 rounded mb-3"
-          >
-            <option value="">Wifi?</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </>
-      )}
-
-      {/* ---------- OFFICE ---------- */}
-
-      {editData.propertyType === "office" && (
-        <>
-          <input
-            type="text"
-            name="floorNumber"
-            value={editData.floorNumber || ""}
-            onChange={handleEditChange}
-            placeholder="Floor Number"
-            className="w-full border p-2 rounded mb-3"
-          />
-
-          <select
-            name="meetingRoom"
-            value={editData.meetingRoom || ""}
-            onChange={handleEditChange}
-            className="w-full border p-2 rounded mb-3"
-          >
-            <option value="">Meeting Room?</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </>
-      )}
-
-      {/* Buttons */}
-
-      <div className="flex justify-end gap-3 mt-5">
-
-        <button
-          onClick={() => setShowEditModal(false)}
-          className="bg-gray-400 text-white px-4 py-2 rounded"
-        >
-          Cancel
-        </button>
-
-        <button
-          onClick={updateProperty}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Update Property
-        </button>
-
-      </div>
-
-    </div>
-  </div>
-)}
     </>
   );
 };
+
+/* =====================================================
+   SMALL UI COMPONENTS
+===================================================== */
+
+const InfoBox = ({
+  icon,
+  label,
+  value,
+  valueClass = "text-gray-800",
+}) => (
+  <div className="bg-gray-50 border rounded-xl p-4">
+    <div className="text-blue-600 mb-2">
+      {icon}
+    </div>
+
+    <p className="text-xs text-gray-500">
+      {label}
+    </p>
+
+    <p
+      className={`font-bold mt-1 capitalize ${valueClass}`}
+    >
+      {value}
+    </p>
+  </div>
+);
+
+const StatBox = ({
+  icon,
+  value,
+  label,
+}) => (
+  <div className="bg-gray-50 rounded-xl p-3 text-center">
+    <div className="text-gray-500 mb-1 flex justify-center">
+      {icon}
+    </div>
+
+    <p className="font-bold text-gray-800">
+      {value}
+    </p>
+
+    <p className="text-[10px] text-gray-500">
+      {label}
+    </p>
+  </div>
+);
+
+const ActionButton = ({
+  onClick,
+  icon,
+  text,
+  className,
+}) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition ${className}`}
+  >
+    {icon}
+    {text}
+  </button>
+);
 
 export default PropertyMarkers;

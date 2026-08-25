@@ -36,7 +36,16 @@ const uploadToCloudinary = (fileBuffer, folder, resourceType = "image") => {
   });
 };
 
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+// Convert Nepali numerals to English numerals
 const nepaliToEnglishNumber = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
   const map = {
     "०": "0",
     "१": "1",
@@ -50,179 +59,911 @@ const nepaliToEnglishNumber = (value) => {
     "९": "9",
   };
 
-  return Number(
-    String(value)
-      .split("")
-      .map((char) => map[char] || char)
-      .join("")
-  );
+  const converted = String(value)
+    .split("")
+    .map((char) => map[char] || char)
+    .join("");
+
+  const number = Number(converted);
+
+  return Number.isNaN(number) ? null : number;
 };
 
 
+// Convert a value to Number safely
+const toNumber = (value, defaultValue = null) => {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  const number = nepaliToEnglishNumber(value);
+
+  return number === null ? defaultValue : number;
+};
+
+
+// Convert string boolean from FormData
+const toBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  return String(value).toLowerCase() === "true";
+};
+
+
+// Parse JSON coming from FormData
+const parseJSON = (value, defaultValue = null) => {
+  if (!value) {
+    return defaultValue;
+  }
+
+  if (typeof value === "object") {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return defaultValue;
+  }
+};
+
+
+
+
+// =====================================================
+// LAND AREA CONVERSION
+// Nepal traditional land measurement
+// =====================================================
+
+const LAND_UNIT_TO_SQFT = {
+  sqft: 1,
+  sqm: 10.7639104167,
+
+  // 1 Ropani = 16 Aana
+  // 1 Aana = 342.25 sq.ft
+  ropani: 5476,
+
+  // 1 Aana = 4 Paisa
+  aana: 342.25,
+
+  // 1 Paisa = 4 Daam
+  paisa: 85.5625,
+
+  // 1 Daam
+  daam: 21.390625,
+
+  // Terai measurement
+  // 1 Bigha = 20 Kattha
+  bigha: 72900,
+
+  // 1 Kattha = 20 Dhur
+  kattha: 3645,
+
+  dhur: 182.25,
+};
+
+
+const calculateSquareFeet = (value, unit) => {
+  if (!value || !unit) {
+    return null;
+  }
+
+  const conversion = LAND_UNIT_TO_SQFT[unit];
+
+  if (!conversion) {
+    return null;
+  }
+
+  return Number((Number(value) * conversion).toFixed(2));
+};
+
+// =====================================================
+// GENERAL AREA CONVERSION
+// =====================================================
+
+const calculateGeneralSquareFeet = (value, unit) => {
+  if (!value || !unit) {
+    return null;
+  }
+
+  if (unit === "sqft") {
+    return Number(Number(value).toFixed(2));
+  }
+
+  if (unit === "sqm") {
+    return Number((Number(value) * 10.7639104167).toFixed(2));
+  }
+
+  return null;
+}; 
+
+
+// =====================================================
+// ADD PROPERTY
+// =====================================================
+
 export const addProperty = async (req, res) => {
   try {
+    // =================================================
+    // BASIC DATA
+    // =================================================
+
     const {
       geometry,
-      label,
+      propertyType,
       price,
-      area,
-       province,
-  district,
-  municipality,
-  wardNo,
-  tole,
-      availableDays,
+      currency,
+      isNegotiable,
       description,
 
-      // PROPERTY TYPE
-      propertyType,
+      province,
+      district,
+      municipality,
+      wardNo,
+      tole,
 
-      // HOME
-      bhk,
-      furnished,
-      parking,
-
-      // LAND
+      address,
+      landArea,
       roadAccess,
 
-      // ROOM
-      roomType,
-      wifi,
-
-      // OFFICE
-      floorNumber,
-      meetingRoom,
+      homeDetails,
+      roomDetails,
+      officeDetails,
     } = req.body;
 
-    // ✅ GEOMETRY REQUIRED
-    if (!geometry) {
+
+    // =================================================
+    // BASIC VALIDATION
+    // =================================================
+
+    if (!propertyType) {
       return res.status(400).json({
-        message: "Geometry required",
+        success: false,
+        message: "Property type is required",
       });
     }
 
-    // 🔒 ONLY OWNER CAN ADD
+    const allowedPropertyTypes = [
+      "land",
+      "home",
+      "room",
+      "office",
+    ];
+
+    if (!allowedPropertyTypes.includes(propertyType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid property type",
+      });
+    }
+
+
+    if (!price || Number(price) < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid property price is required",
+      });
+    }
+
+
+    // =================================================
+    // OWNER CHECK
+    // =================================================
+
     if (req.user.role !== "owner") {
       return res.status(403).json({
+        success: false,
         message:
           "Register your account as an owner to add properties",
       });
     }
 
-    // ✅ IMAGE PATHS
-  const imagePaths=[];
 
-  if(req.files?.images?.length>0){
-    for(const file of req.files.images){
-      const result = await uploadToCloudinary(
-        file.buffer,
-        "properties/images",
-        "image"
-      );
+    // =================================================
+    // GEOMETRY
+    // =================================================
 
-      imagePaths.push({
-        url:result.secure_url,
-        publicId:result.public_id,
-      })
+    if (!geometry) {
+      return res.status(400).json({
+        success: false,
+        message: "Property geometry is required",
+      });
     }
-  }
 
-  let video = null;
-  if(req.files?.video?.length>0){
-    const result = await uploadToCloudinary(
-      req.files.video[0].buffer,
-      "properties/videos",
-      "video"
-    );
-    video={
-      url:result.secure_url,
-      publicId:result.public_id,
+    const parsedGeometry = parseJSON(geometry);
+
+    if (!parsedGeometry) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid geometry data",
+      });
     }
-  }
 
-  // ================= AI POPULARITY PREDICTION =================
 
-const aiPopularityScore = await predictPopularity({
-  propertyType,
-  price: Number(price),
-  area: Number(area),
+    // =================================================
+    // ADDRESS
+    // =================================================
 
-  province,
-  district,
-  municipality,
+    let parsedAddress = parseJSON(address);
 
-  wardNo: nepaliToEnglishNumber(wardNo),
+    // Support both:
+    // 1. New frontend sending address as JSON
+    // 2. Temporary old-style separate fields
 
-  bhk: bhk || null,
-  furnished: furnished || null,
-  parking: parking || null,
-
-  roadAccess: roadAccess ? Number(roadAccess) : null,
-
-  roomType: roomType || null,
-  wifi: wifi || null,
-
-  floorNumber: floorNumber ? Number(floorNumber) : null,
-  meetingRoom: meetingRoom || null,
-});
-
-console.log("AI Popularity Score:", aiPopularityScore);
-
-    // ✅ CREATE PROPERTY
-    const property = await Property.create({
-      geometry: JSON.parse(geometry),
-
-      label,
-      price,
-      area,
-      address:{
+    if (!parsedAddress) {
+      parsedAddress = {
         province,
         district,
         municipality,
-        wardNo: nepaliToEnglishNumber(wardNo),
-        tole
-      },
-      availableDays,
-      description,
+        wardNo,
+        tole,
+      };
+    }
+
+    const finalWardNo = toNumber(
+      parsedAddress.wardNo
+    );
+
+    if (
+      !parsedAddress.province ||
+      !parsedAddress.district ||
+      !parsedAddress.municipality ||
+      !finalWardNo
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Province, district, municipality and ward number are required",
+      });
+    }
+
+
+    // =================================================
+    // PARSE NESTED OBJECTS
+    // =================================================
+
+    const parsedLandArea = parseJSON(
+      landArea,
+      null
+    );
+
+    const parsedRoadAccess = parseJSON(
+      roadAccess,
+      null
+    );
+
+    const parsedHomeDetails = parseJSON(
+      homeDetails,
+      null
+    );
+
+    const parsedRoomDetails = parseJSON(
+      roomDetails,
+      null
+    );
+
+    const parsedOfficeDetails = parseJSON(
+      officeDetails,
+      null
+    );
+
+
+    // =================================================
+    // LAND AREA
+    // =================================================
+
+    let finalLandArea = undefined;
+
+    if (parsedLandArea) {
+      const value = toNumber(
+        parsedLandArea.value
+      );
+
+      const unit = parsedLandArea.unit;
+
+      if (value !== null && unit) {
+        const squareFeet =
+          calculateSquareFeet(
+            value,
+            unit
+          );
+
+        finalLandArea = {
+          value,
+          unit,
+          squareFeet,
+        };
+      }
+    }
+
+
+    // =================================================
+    // ROAD ACCESS
+    // =================================================
+
+    let finalRoadAccess = undefined;
+
+    if (parsedRoadAccess) {
+      finalRoadAccess = {
+        available: toBoolean(
+          parsedRoadAccess.available
+        ),
+
+        width: toNumber(
+          parsedRoadAccess.width
+        ),
+
+        widthUnit:
+          parsedRoadAccess.widthUnit || "ft",
+
+        type:
+          parsedRoadAccess.type || "other",
+      };
+    }
+
+
+    // =================================================
+    // HOME DETAILS
+    // =================================================
+
+    let finalHomeDetails = undefined;
+
+    if (parsedHomeDetails) {
+      let builtUpArea;
+
+      if (parsedHomeDetails.builtUpArea) {
+        const value = toNumber(
+          parsedHomeDetails.builtUpArea.value
+        );
+
+        const unit =
+          parsedHomeDetails.builtUpArea.unit ||
+          "sqft";
+
+        if (value !== null) {
+          builtUpArea = {
+            value,
+            unit,
+            squareFeet:
+              calculateGeneralSquareFeet(
+                value,
+                unit
+              ),
+          };
+        }
+      }
+
+
+      finalHomeDetails = {
+        ...(builtUpArea && {
+          builtUpArea,
+        }),
+
+        bedrooms: toNumber(
+          parsedHomeDetails.bedrooms
+        ),
+
+        bathrooms: toNumber(
+          parsedHomeDetails.bathrooms
+        ),
+
+        floors: toNumber(
+          parsedHomeDetails.floors
+        ),
+
+        propertyAge: toNumber(
+          parsedHomeDetails.propertyAge
+        ),
+
+        furnishing:
+          parsedHomeDetails.furnishing ||
+          undefined,
+
+        parking: {
+          available: toBoolean(
+            parsedHomeDetails.parking?.available
+          ),
+
+          capacity: toNumber(
+            parsedHomeDetails.parking?.capacity
+          ),
+        },
+
+        kitchen: {
+          available: toBoolean(
+            parsedHomeDetails.kitchen?.available
+          ),
+
+          count: toNumber(
+            parsedHomeDetails.kitchen?.count
+          ),
+        },
+
+        balcony: {
+          available: toBoolean(
+            parsedHomeDetails.balcony?.available
+          ),
+
+          count: toNumber(
+            parsedHomeDetails.balcony?.count
+          ),
+        },
+
+        waterSupply:
+          parsedHomeDetails.waterSupply ||
+          undefined,
+      };
+    }
+
+
+    // =================================================
+    // ROOM DETAILS
+    // =================================================
+
+    let finalRoomDetails = undefined;
+
+    if (parsedRoomDetails) {
+      finalRoomDetails = {
+        roomType:
+          parsedRoomDetails.roomType ||
+          undefined,
+
+        floor: toNumber(
+          parsedRoomDetails.floor
+        ),
+
+        bathroom: {
+          available: toBoolean(
+            parsedRoomDetails.bathroom?.available
+          ),
+
+          attached: toBoolean(
+            parsedRoomDetails.bathroom?.attached
+          ),
+        },
+
+        kitchen: {
+          available: toBoolean(
+            parsedRoomDetails.kitchen?.available
+          ),
+        },
+
+        balcony: {
+          available: toBoolean(
+            parsedRoomDetails.balcony?.available
+          ),
+        },
+
+        furnishing:
+          parsedRoomDetails.furnishing ||
+          undefined,
+
+        wifi: {
+          available: toBoolean(
+            parsedRoomDetails.wifi?.available
+          ),
+        },
+
+        parking: {
+          available: toBoolean(
+            parsedRoomDetails.parking?.available
+          ),
+        },
+
+        waterSupply:
+          parsedRoomDetails.waterSupply ||
+          "other",
+      };
+    }
+
+
+    // =================================================
+    // OFFICE DETAILS
+    // =================================================
+
+    let finalOfficeDetails = undefined;
+
+    if (parsedOfficeDetails) {
+      let officeArea;
+
+      if (parsedOfficeDetails.area) {
+        const value = toNumber(
+          parsedOfficeDetails.area.value
+        );
+
+        const unit =
+          parsedOfficeDetails.area.unit ||
+          "sqft";
+
+        if (value !== null) {
+          officeArea = {
+            value,
+            unit,
+            squareFeet:
+              calculateGeneralSquareFeet(
+                value,
+                unit
+              ),
+          };
+        }
+      }
+
+
+      finalOfficeDetails = {
+        ...(officeArea && {
+          area: officeArea,
+        }),
+
+        floor: toNumber(
+          parsedOfficeDetails.floor
+        ),
+
+        numberOfRooms: toNumber(
+          parsedOfficeDetails.numberOfRooms
+        ),
+
+        meetingRoom: {
+          available: toBoolean(
+            parsedOfficeDetails.meetingRoom?.available
+          ),
+
+          count: toNumber(
+            parsedOfficeDetails.meetingRoom?.count
+          ),
+        },
+
+        parking: {
+          available: toBoolean(
+            parsedOfficeDetails.parking?.available
+          ),
+        },
+
+        furnishing:
+          parsedOfficeDetails.furnishing ||
+          undefined,
+      };
+    }
+
+
+    // =================================================
+    // PROPERTY-SPECIFIC VALIDATION
+    // =================================================
+
+    if (
+      propertyType === "land" &&
+      !finalLandArea
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Land area is required for land property",
+      });
+    }
+
+
+    if (
+      propertyType === "home" &&
+      !finalHomeDetails
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Home details are required for home property",
+      });
+    }
+
+
+    if (
+      propertyType === "room" &&
+      !finalRoomDetails
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Room details are required for room property",
+      });
+    }
+
+
+    if (
+      propertyType === "office" &&
+      !finalOfficeDetails
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Office details are required for office property",
+      });
+    }
+
+
+    // =================================================
+    // AUTOMATIC TITLE
+    // =================================================
+
+    const titleMap = {
+      land: "Land for Sale",
+      home: "Home for Sale",
+      room: "Room for Rent",
+      office: "Office for Rent",
+    };
+
+    const title =
+      titleMap[propertyType];
+
+
+    // =================================================
+    // IMAGE UPLOAD
+    // =================================================
+
+    const imagePaths = [];
+
+    if (
+      req.files?.images &&
+      req.files.images.length > 0
+    ) {
+      for (
+        const file of req.files.images
+      ) {
+        const result =
+          await uploadToCloudinary(
+            file.buffer,
+            "properties/images",
+            "image"
+          );
+
+        imagePaths.push({
+          url: result.secure_url,
+          publicId: result.public_id,
+        });
+      }
+    }
+
+
+    // =================================================
+    // VIDEO UPLOAD
+    // =================================================
+
+    let video = null;
+
+    if (
+      req.files?.video &&
+      req.files.video.length > 0
+    ) {
+      const result =
+        await uploadToCloudinary(
+          req.files.video[0].buffer,
+          "properties/videos",
+          "video"
+        );
+
+      video = {
+        url: result.secure_url,
+        publicId: result.public_id,
+      };
+    }
+
+    // =================================================
+// AI POPULARITY PREDICTION
+// =================================================
+
+const aiPopularityScore = await predictPopularity({
+  propertyType,
+
+  price: toNumber(price, 0),
+
+  areaSqFt:
+    finalLandArea?.squareFeet ??
+    finalHomeDetails?.builtUpArea?.squareFeet ??
+    finalOfficeDetails?.area?.squareFeet ??
+    0,
+
+  province: parsedAddress.province,
+
+  district: parsedAddress.district,
+
+  municipality: parsedAddress.municipality,
+
+  wardNo: finalWardNo,
+
+  landArea:
+    finalLandArea?.value ?? 0,
+
+  landUnit:
+    finalLandArea?.unit ?? "",
+
+  roadAvailable:
+    finalRoadAccess?.available ?? false,
+
+  roadWidth:
+    finalRoadAccess?.width ?? 0,
+
+  roadType:
+    finalRoadAccess?.type ?? "other",
+
+  bedrooms:
+    finalHomeDetails?.bedrooms ?? 0,
+
+  bathrooms:
+    finalHomeDetails?.bathrooms ?? 0,
+
+  floors:
+    finalHomeDetails?.floors ??
+    finalRoomDetails?.floor ??
+    finalOfficeDetails?.floor ??
+    0,
+
+  propertyAge:
+    finalHomeDetails?.propertyAge ?? 0,
+
+  furnishing:
+    finalHomeDetails?.furnishing ??
+    finalRoomDetails?.furnishing ??
+    finalOfficeDetails?.furnishing ??
+    "",
+
+  parkingAvailable:
+    finalHomeDetails?.parking?.available ??
+    finalRoomDetails?.parking?.available ??
+    finalOfficeDetails?.parking?.available ??
+    false,
+
+  parkingCapacity:
+    finalHomeDetails?.parking?.capacity ?? 0,
+
+  roomType:
+    finalRoomDetails?.roomType ?? "",
+
+  wifi:
+    finalRoomDetails?.wifi?.available ?? false,
+
+  officeFloor:
+    finalOfficeDetails?.floor ?? 0,
+
+  meetingRoomAvailable:
+    finalOfficeDetails?.meetingRoom?.available ?? false,
+
+  // New properties have no engagement yet
+  views: 0,
+
+  likesCount: 0,
+
+  favoritesCount: 0,
+
+  commentsCount: 0,
+});
+
+console.log(
+  "AI Popularity Score:",
+  aiPopularityScore
+);
+
+    
+    // =================================================
+    // CREATE PROPERTY
+    // =================================================
+
+    const propertyData = {
+      title,
 
       propertyType,
 
-      // HOME
-      bhk,
-      furnished,
-      parking,
+      price: toNumber(price, 0),
 
-      // LAND
-      roadAccess,
+      currency:
+        currency || "NPR",
 
-      // ROOM
-      roomType,
-      wifi,
+      isNegotiable:
+        toBoolean(isNegotiable),
 
-      // OFFICE
-      floorNumber,
-      meetingRoom,
+      description:
+        description || "",
 
-      // IMAGES
-      images: imagePaths,
-      video:video,
+      address: {
+        province:
+          parsedAddress.province,
+
+        district:
+          parsedAddress.district,
+
+        municipality:
+          parsedAddress.municipality,
+
+        wardNo:
+          finalWardNo,
+
+        tole:
+          parsedAddress.tole || "",
+      },
+
+      geometry:
+        parsedGeometry,
+
+      images:
+        imagePaths,
+
+      video,
 
       aiPopularityScore,
 
-      owner: req.user._id,
+      owner:
+        req.user._id,
+    };
+
+
+    // Add only relevant property-specific data
+
+    if (finalLandArea) {
+      propertyData.landArea =
+        finalLandArea;
+    }
+
+    if (finalRoadAccess) {
+      propertyData.roadAccess =
+        finalRoadAccess;
+    }
+
+    if (propertyType === "home") {
+      propertyData.homeDetails =
+        finalHomeDetails;
+    }
+
+    if (propertyType === "room") {
+      propertyData.roomDetails =
+        finalRoomDetails;
+    }
+
+    if (propertyType === "office") {
+      propertyData.officeDetails =
+        finalOfficeDetails;
+    }
+
+
+    // =================================================
+    // SAVE
+    // =================================================
+
+    const property =
+      await Property.create(
+        propertyData
+      );
+
+
+    // =================================================
+    // RESPONSE
+    // =================================================
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Property registered successfully",
+      property,
     });
 
-    res.status(201).json(property);
-
   } catch (err) {
-    console.error(err);
 
-    res.status(500).json({
-      message: "Error saving property",
+    console.error(
+      "ADD PROPERTY ERROR:",
+      err
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Error saving property",
+      error:
+        process.env.NODE_ENV === "development"
+          ? err.message
+          : undefined,
     });
   }
 };
-
 
 
 
@@ -534,94 +1275,836 @@ console.log("Logged in user:", req.user._id.toString());
   }
 };
 
+// =====================================================
+// UPDATE PROPERTY
+// =====================================================
+
 export const updateProperty = async (req, res) => {
   try {
+    const { id } = req.params;
 
-    const { propertyId } = req.params;
-
-    const property = await Property.findById(propertyId);
+    const property = await Property.findById(id);
 
     if (!property) {
       return res.status(404).json({
+        success: false,
         message: "Property not found",
       });
     }
 
-    // Only owner can edit
-    if (property.owner.toString() !== req.user._id.toString()) {
+    // =================================================
+    // OWNER AUTHORIZATION
+    // =================================================
+
+    if (
+      property.owner.toString() !==
+      req.user._id.toString()
+    ) {
       return res.status(403).json({
-        message: "You are not authorized to edit this property",
+        success: false,
+        message:
+          "You are not authorized to update this property",
       });
     }
 
+    // =================================================
+    // BASIC DATA
+    // =================================================
+
     const {
-      label,
       propertyType,
       price,
-      area,
-     province,
-district,
-municipality,
-wardNo,
-tole,
-houseNo, 
-      availableDays,
+      currency,
+      isNegotiable,
       description,
-      bhk,
-      furnished,
-      parking,
+      geometry,
+
+      address,
+      landArea,
       roadAccess,
-      roomType,
-      wifi,
-      floorNumber,
-      meetingRoom,
+
+      homeDetails,
+      roomDetails,
+      officeDetails,
+
+      status,
+      availableFrom,
     } = req.body;
 
-    property.label = label;
-    property.propertyType = propertyType;
-    property.price = price;
-    property.area = area;
-    property.address = {
-      province,
-      district,
-      municipality,
-      wardNo,
-      tole
+
+    // =================================================
+    // PROPERTY TYPE
+    // =================================================
+
+    const finalPropertyType =
+      propertyType || property.propertyType;
+
+    const allowedPropertyTypes = [
+      "land",
+      "home",
+      "room",
+      "office",
+    ];
+
+    if (
+      !allowedPropertyTypes.includes(
+        finalPropertyType
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid property type",
+      });
+    }
+
+
+    // =================================================
+    // ADDRESS
+    // =================================================
+
+    let parsedAddress =
+      parseJSON(address, null);
+
+    if (parsedAddress) {
+      const wardNo = toNumber(
+        parsedAddress.wardNo
+      );
+
+      parsedAddress = {
+        province:
+          parsedAddress.province ??
+          property.address?.province ??
+          "",
+
+        district:
+          parsedAddress.district ??
+          property.address?.district ??
+          "",
+
+        municipality:
+          parsedAddress.municipality ??
+          property.address?.municipality ??
+          "",
+
+        wardNo:
+          wardNo ??
+          property.address?.wardNo,
+
+        tole:
+          parsedAddress.tole ??
+          property.address?.tole ??
+          "",
+      };
+    }
+
+
+    // =================================================
+    // LAND AREA
+    // =================================================
+
+    let finalLandArea =
+      property.landArea;
+
+    const parsedLandArea =
+      parseJSON(landArea, null);
+
+    if (parsedLandArea) {
+      const value =
+        toNumber(
+          parsedLandArea.value
+        );
+
+      const unit =
+        parsedLandArea.unit;
+
+      if (value !== null && unit) {
+        finalLandArea = {
+          value,
+          unit,
+          squareFeet:
+            calculateSquareFeet(
+              value,
+              unit
+            ),
+        };
+      }
+    }
+
+
+    // =================================================
+    // ROAD ACCESS
+    // =================================================
+
+    let finalRoadAccess =
+      property.roadAccess;
+
+    const parsedRoadAccess =
+      parseJSON(roadAccess, null);
+
+    if (parsedRoadAccess) {
+      finalRoadAccess = {
+        available:
+          toBoolean(
+            parsedRoadAccess.available
+          ),
+
+        width:
+          toNumber(
+            parsedRoadAccess.width
+          ),
+
+        widthUnit:
+          parsedRoadAccess.widthUnit ||
+          "ft",
+
+        type:
+          parsedRoadAccess.type ||
+          "other",
+      };
+    }
+
+
+    // =================================================
+    // HOME DETAILS
+    // =================================================
+
+    let finalHomeDetails =
+      property.homeDetails;
+
+    const parsedHomeDetails =
+      parseJSON(
+        homeDetails,
+        null
+      );
+
+    if (parsedHomeDetails) {
+      let builtUpArea;
+
+      if (
+        parsedHomeDetails.builtUpArea
+      ) {
+        const value =
+          toNumber(
+            parsedHomeDetails
+              .builtUpArea
+              .value
+          );
+
+        const unit =
+          parsedHomeDetails
+            .builtUpArea
+            .unit || "sqft";
+
+        if (value !== null) {
+          builtUpArea = {
+            value,
+            unit,
+            squareFeet:
+              calculateGeneralSquareFeet(
+                value,
+                unit
+              ),
+          };
+        }
+      }
+
+      finalHomeDetails = {
+        ...(builtUpArea && {
+          builtUpArea,
+        }),
+
+        bedrooms:
+          toNumber(
+            parsedHomeDetails.bedrooms
+          ),
+
+        bathrooms:
+          toNumber(
+            parsedHomeDetails.bathrooms
+          ),
+
+        floors:
+          toNumber(
+            parsedHomeDetails.floors
+          ),
+
+        propertyAge:
+          toNumber(
+            parsedHomeDetails.propertyAge
+          ),
+
+        furnishing:
+          parsedHomeDetails.furnishing,
+
+        parking: {
+          available:
+            toBoolean(
+              parsedHomeDetails
+                .parking?.available
+            ),
+
+          capacity:
+            toNumber(
+              parsedHomeDetails
+                .parking?.capacity
+            ),
+        },
+
+        kitchen: {
+          available:
+            toBoolean(
+              parsedHomeDetails
+                .kitchen?.available
+            ),
+
+          count:
+            toNumber(
+              parsedHomeDetails
+                .kitchen?.count
+            ),
+        },
+
+        balcony: {
+          available:
+            toBoolean(
+              parsedHomeDetails
+                .balcony?.available
+            ),
+
+          count:
+            toNumber(
+              parsedHomeDetails
+                .balcony?.count
+            ),
+        },
+
+        waterSupply:
+          parsedHomeDetails.waterSupply,
+      };
+    }
+
+
+    // =================================================
+    // ROOM DETAILS
+    // =================================================
+
+    let finalRoomDetails =
+      property.roomDetails;
+
+    const parsedRoomDetails =
+      parseJSON(
+        roomDetails,
+        null
+      );
+
+    if (parsedRoomDetails) {
+      finalRoomDetails = {
+        roomType:
+          parsedRoomDetails.roomType,
+
+        floor:
+          toNumber(
+            parsedRoomDetails.floor
+          ),
+
+        bathroom: {
+          available:
+            toBoolean(
+              parsedRoomDetails
+                .bathroom?.available
+            ),
+
+          attached:
+            toBoolean(
+              parsedRoomDetails
+                .bathroom?.attached
+            ),
+        },
+
+        kitchen: {
+          available:
+            toBoolean(
+              parsedRoomDetails
+                .kitchen?.available
+            ),
+        },
+
+        balcony: {
+          available:
+            toBoolean(
+              parsedRoomDetails
+                .balcony?.available
+            ),
+        },
+
+        furnishing:
+          parsedRoomDetails.furnishing,
+
+        wifi: {
+          available:
+            toBoolean(
+              parsedRoomDetails
+                .wifi?.available
+            ),
+        },
+
+        parking: {
+          available:
+            toBoolean(
+              parsedRoomDetails
+                .parking?.available
+            ),
+        },
+
+        waterSupply:
+          parsedRoomDetails.waterSupply ||
+          "other",
+      };
+    }
+
+
+    // =================================================
+    // OFFICE DETAILS
+    // =================================================
+
+    let finalOfficeDetails =
+      property.officeDetails;
+
+    const parsedOfficeDetails =
+      parseJSON(
+        officeDetails,
+        null
+      );
+
+    if (parsedOfficeDetails) {
+      let officeArea;
+
+      if (
+        parsedOfficeDetails.area
+      ) {
+        const value =
+          toNumber(
+            parsedOfficeDetails
+              .area.value
+          );
+
+        const unit =
+          parsedOfficeDetails
+            .area.unit || "sqft";
+
+        if (value !== null) {
+          officeArea = {
+            value,
+            unit,
+            squareFeet:
+              calculateGeneralSquareFeet(
+                value,
+                unit
+              ),
+          };
+        }
+      }
+
+      finalOfficeDetails = {
+        ...(officeArea && {
+          area: officeArea,
+        }),
+
+        floor:
+          toNumber(
+            parsedOfficeDetails.floor
+          ),
+
+        numberOfRooms:
+          toNumber(
+            parsedOfficeDetails
+              .numberOfRooms
+          ),
+
+        meetingRoom: {
+          available:
+            toBoolean(
+              parsedOfficeDetails
+                .meetingRoom?.available
+            ),
+
+          count:
+            toNumber(
+              parsedOfficeDetails
+                .meetingRoom?.count
+            ),
+        },
+
+        parking: {
+          available:
+            toBoolean(
+              parsedOfficeDetails
+                .parking?.available
+            ),
+        },
+
+        furnishing:
+          parsedOfficeDetails.furnishing,
+      };
+    }
+
+
+    // =================================================
+    // IMAGE UPLOAD
+    // =================================================
+
+    let images =
+      property.images || [];
+
+    if (
+      req.files?.images &&
+      req.files.images.length > 0
+    ) {
+      const newImages = [];
+
+      for (
+        const file of req.files.images
+      ) {
+        const result =
+          await uploadToCloudinary(
+            file.buffer,
+            "properties/images",
+            "image"
+          );
+
+        newImages.push({
+          url: result.secure_url,
+          publicId: result.public_id,
+        });
+      }
+
+      images = [
+        ...images,
+        ...newImages,
+      ];
+    }
+
+
+    // =================================================
+    // VIDEO UPLOAD
+    // =================================================
+
+    let video =
+      property.video || null;
+
+    if (
+      req.files?.video &&
+      req.files.video.length > 0
+    ) {
+      const result =
+        await uploadToCloudinary(
+          req.files.video[0].buffer,
+          "properties/videos",
+          "video"
+        );
+
+      video = {
+        url: result.secure_url,
+        publicId: result.public_id,
+      };
+    }
+
+
+    // =================================================
+    // AUTOMATIC TITLE
+    // =================================================
+
+   // =================================================
+// AUTOMATIC TITLE
+// =================================================
+
+const titleMap = {
+  land: "Land for Sale",
+  home: "Home for Sale",
+  room: "Room for Rent",
+  office: "Office for Rent",
+};
+
+const title =
+  titleMap[finalPropertyType];
+
+// =================================================
+// AI POPULARITY PREDICTION
+// =================================================
+
+let aiAreaSqFt = 0;
+
+if (finalLandArea?.squareFeet) {
+  aiAreaSqFt = finalLandArea.squareFeet;
+} else if (finalHomeDetails?.builtUpArea?.squareFeet) {
+  aiAreaSqFt = finalHomeDetails.builtUpArea.squareFeet;
+} else if (finalOfficeDetails?.area?.squareFeet) {
+  aiAreaSqFt = finalOfficeDetails.area.squareFeet;
+}
+
+const aiPopularityScore = await predictPopularity({
+  propertyType: finalPropertyType,
+
+  price:
+    price !== undefined
+      ? toNumber(price, 0)
+      : property.price,
+
+  areaSqFt: aiAreaSqFt,
+
+  province:
+    parsedAddress?.province ||
+    property.address?.province ||
+    "",
+
+  district:
+    parsedAddress?.district ||
+    property.address?.district ||
+    "",
+
+  municipality:
+    parsedAddress?.municipality ||
+    property.address?.municipality ||
+    "",
+
+  wardNo:
+    parsedAddress?.wardNo ??
+    property.address?.wardNo ??
+    0,
+
+  // LAND
+  landArea:
+    finalLandArea?.value ?? 0,
+
+  landUnit:
+    finalLandArea?.unit ?? "",
+
+  // ROAD
+  roadAvailable:
+    finalRoadAccess?.available ?? false,
+
+  roadWidth:
+    finalRoadAccess?.width ?? 0,
+
+  roadType:
+    finalRoadAccess?.type ?? "",
+
+  // HOME
+  bedrooms:
+    finalHomeDetails?.bedrooms ?? 0,
+
+  bathrooms:
+    finalHomeDetails?.bathrooms ?? 0,
+
+  floors:
+    finalHomeDetails?.floors ?? 0,
+
+  propertyAge:
+    finalHomeDetails?.propertyAge ?? 0,
+
+  furnishing:
+    finalHomeDetails?.furnishing ??
+    finalRoomDetails?.furnishing ??
+    finalOfficeDetails?.furnishing ??
+    "",
+
+  parkingAvailable:
+    finalHomeDetails?.parking?.available ??
+    finalRoomDetails?.parking?.available ??
+    finalOfficeDetails?.parking?.available ??
+    false,
+
+  parkingCapacity:
+    finalHomeDetails?.parking?.capacity ?? 0,
+
+  // ROOM
+  roomType:
+    finalRoomDetails?.roomType ?? "",
+
+  wifi:
+    finalRoomDetails?.wifi?.available ?? false,
+
+  // OFFICE
+  officeFloor:
+    finalOfficeDetails?.floor ?? 0,
+
+  meetingRoomAvailable:
+    finalOfficeDetails?.meetingRoom?.available ?? false,
+
+  // ENGAGEMENT
+  views: property.views ?? 0,
+
+  likesCount: property.likesCount ?? 0,
+
+  favoritesCount:
+    property.favoritesCount ?? 0,
+
+  commentsCount:
+    property.comments?.length ?? 0,
+});
+
+console.log(
+  "Updated AI Popularity Score:",
+  aiPopularityScore
+);
+
+// UPDATE OBJECT
+// =================================================
+
+    // =================================================
+    // UPDATE OBJECT
+    // =================================================
+
+    const updateData = {
+      title,
+
+      propertyType:
+        finalPropertyType,
+
+      price:
+        price !== undefined
+          ? toNumber(price, 0)
+          : property.price,
+
+          aiPopularityScore,
+
+      currency:
+        currency ||
+        property.currency ||
+        "NPR",
+
+      isNegotiable:
+        isNegotiable !== undefined
+          ? toBoolean(isNegotiable)
+          : property.isNegotiable,
+
+      description:
+        description !== undefined
+          ? description
+          : property.description,
+
+      address:
+        parsedAddress ||
+        property.address,
+
+      geometry:
+        parseJSON(
+          geometry,
+          property.geometry
+        ),
+
+      landArea:
+        finalLandArea,
+
+      roadAccess:
+        finalRoadAccess,
+
+      homeDetails:
+        finalPropertyType === "home"
+          ? finalHomeDetails
+          : undefined,
+
+      roomDetails:
+        finalPropertyType === "room"
+          ? finalRoomDetails
+          : undefined,
+
+      officeDetails:
+        finalPropertyType === "office"
+          ? finalOfficeDetails
+          : undefined,
+
+      images,
+
+      video,
+
+      status:
+        status || property.status,
+
+      availableFrom:
+        availableFrom
+          ? new Date(availableFrom)
+          : property.availableFrom,
     };
-    property.availableDays = availableDays;
-    property.description = description;
 
-    property.bhk = bhk;
-    property.furnished = furnished;
-    property.parking = parking;
 
-    property.roadAccess = roadAccess;
+    // =================================================
+    // REMOVE OLD CATEGORY DATA
+    // =================================================
 
-    property.roomType = roomType;
-    property.wifi = wifi;
+    if (finalPropertyType !== "home") {
+      updateData.homeDetails = undefined;
+    }
 
-    property.floorNumber = floorNumber;
-    property.meetingRoom = meetingRoom;
+    if (finalPropertyType !== "room") {
+      updateData.roomDetails = undefined;
+    }
 
-    await property.save();
+    if (finalPropertyType !== "office") {
+      updateData.officeDetails = undefined;
+    }
 
-    res.status(200).json({
+
+    // =================================================
+    // UPDATE DATABASE
+    // =================================================
+
+    const updatedProperty =
+      await Property.findByIdAndUpdate(
+        id,
+        {
+          $set: updateData,
+          $unset: {
+            // Remove legacy fields if they
+            // existed on old documents
+            label: "",
+            area: "",
+            bhk: "",
+            furnished: "",
+            parking: "",
+            roomType: "",
+            wifi: "",
+            floorNumber: "",
+            meetingRoom: "",
+            availableDays: "",
+          },
+        },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+
+
+    // =================================================
+    // RESPONSE
+    // =================================================
+
+    return res.status(200).json({
       success: true,
-      message: "Property updated successfully",
-      property,
+      message:
+        "Property updated successfully",
+      property: updatedProperty,
     });
 
   } catch (err) {
 
-    console.log(err);
+    console.error(
+      "UPDATE PROPERTY ERROR:",
+      err
+    );
 
-    res.status(500).json({
-      message: "Update error",
+    return res.status(500).json({
+      success: false,
+      message:
+        "Error updating property",
+      error:
+        process.env.NODE_ENV === "development"
+          ? err.message
+          : undefined,
     });
-
   }
 };
-
 //porperty status update ko code
 
  
@@ -672,3 +2155,25 @@ export const updatePropertyStatus= async (req,res)=>{
 }
 
 
+export const getPropertyById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const property = await Property.findById(id);
+
+    if (!property) {
+      return res.status(404).json({
+        message: "Property not found",
+      });
+    }
+
+    res.status(200).json(property);
+  } catch (error) {
+    console.error("Get property by ID error:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch property",
+      error: error.message,
+    });
+  }
+};
