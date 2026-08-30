@@ -20,16 +20,11 @@ MODEL_PATH = "model.pkl"
 try:
     model = joblib.load(MODEL_PATH)
 
-    print("\n==========================================")
-    print("REAL ESTATE AI SERVER")
-    print("==========================================")
+  
     print("Model loaded successfully")
 
 except Exception as error:
 
-    print("\n==========================================")
-    print("MODEL LOADING ERROR")
-    print("==========================================")
     print(error)
 
     model = None
@@ -144,9 +139,6 @@ def predict():
         ])
 
 
-        print("\n==========================================")
-        print("MODEL INPUT")
-        print("==========================================")
 
         print(
             input_df.to_string(index=False)
@@ -233,9 +225,6 @@ def predict():
 
 if __name__ == "__main__":
 
-    print("\n==========================================")
-    print("STARTING REAL ESTATE AI SERVER")
-    print("==========================================")
 
     print(
         "Server running on:"

@@ -6,6 +6,7 @@ import { AuthContext } from "../context/AuthContext";
 import { FaFilter, FaPlus, FaHeart } from "react-icons/fa";
 import { IoMdTrendingUp } from "react-icons/io";
 
+
 const Navbar = ({
   setSearchedLocation,
   selectedFilter,
@@ -25,6 +26,33 @@ const Navbar = ({
   const [isTrendingOpen, setIsTrendingOpen] = useState(false);
 
   const menuRef = useRef();
+  const filterRef = useRef(null);
+const trendingRef = useRef(null);
+
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (
+      filterRef.current &&
+      !filterRef.current.contains(event.target)
+    ) {
+      setIsFilterOpen(false);
+    }
+
+    if (
+      trendingRef.current &&
+      !trendingRef.current.contains(event.target)
+    ) {
+      setIsTrendingOpen(false);
+    }
+  };
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
+
 
   // ================= FETCH SUGGESTIONS =================
   useEffect(() => {
@@ -196,7 +224,7 @@ const Navbar = ({
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 ml-auto">
 
             {/* ================= FILTER ================= */}
-            <div className="relative">
+            <div ref={filterRef} className="relative">
               <button
                 onClick={() => {
                   setIsFilterOpen(!isFilterOpen);
@@ -279,7 +307,7 @@ const Navbar = ({
             </div>
 
             {/* ================= TRENDING ================= */}
-            <div className="relative">
+            <div ref={trendingRef} className="relative">
               <button
                 className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full border transition-all duration-200 ${
                   isTrendingOpen
@@ -357,10 +385,19 @@ const Navbar = ({
             </div>
 
             {/* ================= SAVED PROPERTIES ================= */}
+
+
             <div
-              onClick={() => navigate("/saved-properties")}
-              className="relative cursor-pointer w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-pink-50 border border-pink-100 hover:bg-pink-100 transition-all duration-200 hover:scale-105"
-              title="Saved properties"
+          onClick={() => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
+
+    navigate("/saved-properties");
+  }}
+  className="relative cursor-pointer w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-pink-50 border border-pink-100 hover:bg-pink-100 transition-all duration-200 hover:scale-105"
+  title="Saved properties"
             >
               <FaHeart className="text-lg sm:text-xl text-pink-500" />
 
