@@ -98,7 +98,7 @@ Model Storage: Joblib (model.pkl)
 
 Larger and more representative datasets
 
-Real user interaction data such as views, likes, and favorites
+Real user interaction data such as views, likes, and favorites.
 
 Feature engineering and hyperparameter tuning
 
