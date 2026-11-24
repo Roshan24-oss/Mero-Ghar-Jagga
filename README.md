@@ -110,4 +110,4 @@ Periodic model retraining
 
 🎯 Summary
 
-Mero Ghar Jagga integrates a Random Forest regression model into a MERN-based real-estate platform through a Python Flask API, enabling property owners to receive an AI-generated popularity score and making the prediction part of the actual property listing workflow.
+Mero Ghar Jagga integrates a Random Forest regression model into a MERN-based real-estate platform through a Python Flask API, enabling property owners to receive an AI-generated popularity score and making the prediction part of the actual property listing workflow..
